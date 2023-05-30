@@ -28,6 +28,7 @@ COLY2 = $33
 
 ; configuration: set this to 0 or 1 for different style.
 THICCURSOR = 1
+FLICKER = 0
 
 DISPMARGIN = 14
 
@@ -468,6 +469,15 @@ i SET 0
         sta ITERATOR
         
 .rowloop
+
+    IF FLICKER == 1
+        lda TIMER
+        lsr
+    ELSE
+        sec
+    ENDIF
+        bcc .kernrow1
+.kernrow0
         sta WSYNC
         SLEEP DISPMARGIN
         jsr LINES_R+64*i
@@ -475,6 +485,16 @@ i SET 0
         sta WSYNC
         SLEEP DISPMARGIN
         jsr LINES_R+32+64*i
+        bcs .endkernrow ; guaranteed
+.kernrow1
+        sta WSYNC
+        SLEEP DISPMARGIN
+        jsr LINES_R+32+64*i
+        
+        sta WSYNC
+        SLEEP DISPMARGIN
+        jsr LINES_R+64*i
+.endkernrow
         dec ITERATOR
         bne .rowloop
         
