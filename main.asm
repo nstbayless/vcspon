@@ -26,6 +26,9 @@ COLX2 = $4B
 COLA2 = $FF^COLX2
 COLY2 = $33
 
+; configuration: set this to 0 or 1 for different style.
+THICCURSOR = 1
+
 DISPMARGIN = 14
 
 ; bitwise pointer arithmetic may in the future happen here
@@ -262,7 +265,8 @@ clean_loop
     sta COLUPF
     sta COLUP0
     sta COLUP1
-    lda #$05
+    
+    lda #$05 + 2*THICCURSOR
     sta NUSIZ0
     sta NUSIZ1
     
@@ -275,7 +279,7 @@ clean_loop
     sta RESP1
     
     sta WSYNC
-    lda #$F0
+    lda #$F0 - THICCURSOR*$80
     sta HMP0
     sta HMP1
     sta HMOVE
@@ -509,12 +513,12 @@ kernel_cursor_pre:
     sta WSYNC
     bne ._skipdraw
     
-    lda #$FF
+    lda #$FF - $7*THICCURSOR
     sta GRP0
     
     sleep 24+DISPMARGIN ; could use this!
     
-    lda #$81
+    lda #$81 + ($7*THICCURSOR)
     
     ;sta GRP0
     
@@ -526,7 +530,7 @@ kernel_cursor_pre:
 kernel_cursor_post:
     lda #$0
     cmp CURY0
-    IFEQ_LDA #$FF
+    IFEQ_LDA #$FF - $7*THICCURSOR
     sta WSYNC
     sta GRP0
     rts
