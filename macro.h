@@ -103,7 +103,8 @@ VERSION_MACRO         = 109
                 sei
                 cld
             
-                lxa #0
+                ldx #$EE
+                lda #$0
                 tay
 .CLEAR_STACK    dex
                 txs
