@@ -23,3 +23,4 @@ CURX0 ds 1
 ; input
 DAS ds 1
 PREVINPUT ds 1
+GRAVROW ds 1 ; ranges 1-(ROWS-1)

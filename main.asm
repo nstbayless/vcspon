@@ -115,7 +115,7 @@ rng:
 
 .rngloop1:
     
-    dey
+    dec ITERATOR
     bne .rngloop0
     sta RNGSEED+0
     rts
@@ -172,7 +172,7 @@ VISIBLE_ROWS = 192
         sta PTR_TO_BLOCKS_W
         tya
         ldx #$0
-        sta (PTR_TO_BLOCKS_R,X)
+        sta (PTR_TO_BLOCKS_W,X)
         stx PTR_TO_BLOCKS_W
         
         ; write LINE opcode
@@ -202,12 +202,20 @@ VISIBLE_ROWS = 192
         sta (WORD_A),y
     ENDM
 
+; input: x is x position, a is y position
+; output: a is value of block
+; flags: z if block is 0
+; clobbers: ITERATOR
 JSR_GetBlockValue_XA
     ldy #$0
 JSR_GetBlockValue_XA_y0
     GetBlockValue_XA_y0
+    ora #$0
     rts
 
+; clobbers: ITERATOR
+JSR_SetBlockValue_XA_0
+    ldy #$0
 JSR_SetBlockValue_XA_Y
     SetBlockValue_XA_Y
     rts
@@ -247,8 +255,8 @@ Reset
     eor $F3
     eor $F4
     sta RNGSEED+1
-    ldx #$00
-    lda #$02
+    lda #$00
+    tax
 clean_loop
     sta $1400,x
     sta $1500,x
@@ -288,9 +296,10 @@ clean_loop
     jsr ResetRows
     
 InitBlockValues
-    lda #ROWS-1
+    lda #ROWS
     sta VAR2
 .nexty
+    dec VAR2
     lda #WIDTH
     sta VAR1
 .nextx
@@ -311,6 +320,7 @@ InitBlockValues
     
     dec VAR1
     bne .nextx
+    inc VAR2
     dec VAR2
     bne .nexty
     
@@ -318,7 +328,6 @@ InitBlockValues
     ldy #$3
     lda #$0
     jsr JSR_SetBlockValue_XA_Y
-    
 
 StartOfFrame
     lda #0
@@ -437,11 +446,35 @@ ProcessButtonPress
     and VAR1
     and PREVINPUT
     sta WSYNC  ; ---------------------------------
-    beq ._dontSwap
-    
+    beq DontSwap
+
+SwapBlocks:
     ; SWAP HERE
+    ldx CURX0
+    lda CURY0
+    pha
+        pha
+            pha
+                jsr JSR_GetBlockValue_XA
+                sta VAR2
+                
+                ldx CURX0
+                inx
+            pla
+            jsr JSR_GetBlockValue_XA
+            
+            tay
+        pla
+        ldx CURX0
+        jsr JSR_SetBlockValue_XA_Y
+        
+        ldx CURX0
+        ldy VAR2
+        inx
+    pla
+    jsr JSR_SetBlockValue_XA_Y
     
-._dontSwap
+DontSwap
 
 ProcessDAS
     lda VAR1
@@ -475,9 +508,46 @@ ProcessDAS
     sta PREVINPUT
 ._dontdas
 
+    dec GRAVROW
+    bne _DontWrapGravRow
+    lda #ROWS-1
+    sta GRAVROW
+_DontWrapGravRow
+
+    lda #2
+    sta VAR1
+GravLoop
+    dec VAR1
+    
+    ldx VAR1
+    lda GRAVROW
+    jsr JSR_GetBlockValue_XA
+    bne SkipGravDrop
+    
+    ldx GRAVROW
+    dex
+    txa
+    pha
+        ldx VAR1
+        jsr JSR_GetBlockValue_XA
+        tay
+        lda GRAVROW
+        ldx VAR1
+        jsr JSR_SetBlockValue_XA_Y
+    pla
+    ldx VAR1
+    ;jsr JSR_SetBlockValue_XA_0
+    
+SkipGravDrop:
+
+GravLoopBottom:
+    lda #$FF
+    and VAR1
+    bne GravLoop
+    
     sta WSYNC ; ---------------------------------
     
-    REPEAT 37-8
+    REPEAT 37-15
     sta WSYNC ; ---------------------------------
     REPEND
     
