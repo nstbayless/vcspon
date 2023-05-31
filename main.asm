@@ -349,10 +349,23 @@ StartOfFrame
     lda SWCHA
     eor #$FF
     sta VAR1
+    lsr
+    lsr
+    lsr
+    lsr
+    ora VAR1
+    and #$0F
+    sta VAR1
+    lda INPT4
+    and INPT5
+    eor #$FF
+    and #$80
+    ora VAR1
+    sta VAR1
     
 LeftMovement
     
-    lda #$44
+    lda #$04
     ldy #$30 ; +3 clocks
     and VAR1
     ifneq_incvar2
@@ -370,7 +383,7 @@ LeftMovement
 RightMovement
 
     ldy #$D0 ; -3 clocks
-    lda #$88
+    lda #$08
     and VAR1
     ifneq_incvar2
     and PREVINPUT
@@ -384,7 +397,7 @@ RightMovement
 ._skip_moveright
     
 UpMovement
-    lda #$11
+    lda #$01
     and VAR1
     
     sta WSYNC  ; ---------------------------------
@@ -402,7 +415,7 @@ UpMovement
 ._skip_moveup
     
 DownMovement
-    lda #$22
+    lda #$02
     and VAR1
     sta WSYNC  ; ---------------------------------
     sta HMOVE  ; 2/3
@@ -418,6 +431,17 @@ DownMovement
     bcc ._skip_movedown
     dec CURY0
 ._skip_movedown
+
+ProcessButtonPress
+    lda #$80
+    and VAR1
+    and PREVINPUT
+    sta WSYNC  ; ---------------------------------
+    beq ._dontSwap
+    
+    ; SWAP HERE
+    
+._dontSwap
 
 ProcessDAS
     lda VAR1
@@ -446,13 +470,14 @@ ProcessDAS
     lsr
     lsr
     bcc ._dontdas
-    lda #$FF
+    lda #$7F
+    ora PREVINPUT
     sta PREVINPUT
 ._dontdas
 
     sta WSYNC ; ---------------------------------
     
-    REPEAT 37-7
+    REPEAT 37-8
     sta WSYNC ; ---------------------------------
     REPEND
     
