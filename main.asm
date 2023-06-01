@@ -29,6 +29,7 @@ COLY2 = $33
 ; configuration: set this to 0 or 1 for different style.
 THICCURSOR = 1
 FLICKER = 0
+LINEOP_WRITE_INDIRECT_ACCESS = 1
 
 DISPMARGIN = 14
 
@@ -188,9 +189,24 @@ VISIBLE_ROWS = 192
         sta WORD_A
         lda LINE_OPCODE_LOOKUP_B,y
         pha
-            lda LINE_OPCODE_LOOKUP_A,y
-            ldy ITERATOR
-            sta (WORD_A),y
+            
+            if LINEOP_WRITE_INDIRECT_ACCESS
+                lda LINE_OPCODE_LOOKUP_A,y
+                ldy ITERATOR
+                sta (WORD_A),y
+            else
+                lda ITERATOR
+                tay 
+                clc
+                adc WORD_A
+                sta WORD_A
+                lda #$0
+                adc WORD_A+1
+                sta WORD_A+1
+                lda LINE_OPCODE_LOOKUP_A,y
+                ldy #$0
+                sta (WORD_A),y
+            endif
             
             ; row B
             inx
@@ -198,8 +214,21 @@ VISIBLE_ROWS = 192
             sta WORD_A+1
             lda LINES_CORE_W_ADDR_LOOKUP_LO,x
             sta WORD_A
-        pla
-        sta (WORD_A),y
+        if LINEOP_WRITE_INDIRECT_ACCESS
+                pla
+            sta (WORD_A),y
+        else
+                lda ITERATOR
+                clc
+                adc WORD_A
+                sta WORD_A
+                lda #$0
+                adc WORD_A+1
+                sta WORD_A+1
+                ldy #$0
+            pla
+            sta (WORD_A),y
+        endif
     ENDM
 
 ; input: x is x position, a is y position
