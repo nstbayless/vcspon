@@ -30,6 +30,7 @@ COLY2 = $33
 THICCURSOR = 1
 FLICKER = 0
 LINEOP_WRITE_INDIRECT_ACCESS = 1
+GRAVITY = 1
 
 DISPMARGIN = 14
 
@@ -55,15 +56,15 @@ LINE_OPCODE_LOOKUP_A
 
 LINES_CORE_W_ADDR_LOOKUP_HI
 i SET 0
-    REPEAT ROWS*2
-        dc.b (LINES_CORE_W+$20*i) >> 8
+    REPEAT ROWS*ROWSUB
+        dc.b (LINES_CORE_W+ROWINSTRC*i) >> 8
 i SET i + 1
     REPEND
     
 LINES_CORE_W_ADDR_LOOKUP_LO
 i SET 0
-    REPEAT ROWS*2
-        dc.b (LINES_CORE_W+$20*i) & $FF
+    REPEAT ROWS*ROWSUB
+        dc.b (LINES_CORE_W+ROWINSTRC*i) & $FF
 i SET i + 1
     REPEND
 
@@ -149,6 +150,8 @@ VISIBLE_ROWS = 192
 
 ; input: x is x position, a is y position
 ; output: a is index of block
+; clobbers: ITERATOR
+; preserved: x, y
     MAC GetBlockAddr_XA
         asln 3
         stx ITERATOR
@@ -170,6 +173,7 @@ VISIBLE_ROWS = 192
         GetBlockAddr_XA
         
         ; write BLOCK
+        ; [py] syms["BLOCKS_W"] % 0x100 == 0
         sta PTR_TO_BLOCKS_W
         tya
         ldx #$0
@@ -191,11 +195,12 @@ VISIBLE_ROWS = 192
         pha
             
             if LINEOP_WRITE_INDIRECT_ACCESS
+                ; [py] all((syms['LINES_CORE_W'] + syms['ROWINSTRC']*i) % 0x100 <= 0x100 - syms['ROWINSTRC'] for i in range(syms['ROWS'] * syms['ROWSUB']))
                 lda LINE_OPCODE_LOOKUP_A,y
-                ldy ITERATOR
+                ldy ITERATOR ; y <- x position
                 sta (WORD_A),y
             else
-                lda ITERATOR
+                lda ITERATOR ; y <- x position
                 tay 
                 clc
                 adc WORD_A
@@ -210,8 +215,9 @@ VISIBLE_ROWS = 192
             
             ; row B
             inx
-            lda LINES_CORE_W_ADDR_LOOKUP_HI,x
-            sta WORD_A+1
+            ;lda LINES_CORE_W_ADDR_LOOKUP_HI,x   ; FIXME: necessary? Maybe this value is the same?
+            ;sta WORD_A+1                        ; FIXME: ^
+            ; [py] all((syms["LINES_CORE_W"] + syms["ROWINSTRC"]*i*2) // 0x100 == (syms["LINES_CORE_W"] + syms["ROWINSTRC"]*(i*2 + 1)) // 0x100 for i in range(syms["ROWS"]))
             lda LINES_CORE_W_ADDR_LOOKUP_LO,x
             sta WORD_A
         if LINEOP_WRITE_INDIRECT_ACCESS
@@ -275,6 +281,7 @@ ResetRows
     
     rts
 
+; main / Entrypoint
 Reset
     CLEAN_START
     lda $F0
@@ -537,6 +544,7 @@ ProcessDAS
     sta PREVINPUT
 ._dontdas
 
+    .IF GRAVITY
     dec GRAVROW
     bne _DontWrapGravRow
     lda #ROWS-1
@@ -573,13 +581,14 @@ GravLoopBottom:
     lda #$FF
     and VAR1
     bne GravLoop
+    ENDIF
     
     sta WSYNC ; ---------------------------------
     
     REPEAT 37-15
     sta WSYNC ; ---------------------------------
     REPEND
-    
+
     inc CURY0
     
 i SET 0
