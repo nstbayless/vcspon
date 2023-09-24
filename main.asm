@@ -32,6 +32,7 @@ THICCURSOR = 1
 FLICKER = 0
 LINEOP_WRITE_INDIRECT_ACCESS = 1
 GRAVITY = 1
+STROBE_P1 = 0
 
 DISPMARGIN = 14
 
@@ -510,6 +511,11 @@ clean_loop
     sta GRAVROW ; just need to set this to any value between 1 and ROWS inclusive
     lda #$7
     sta NUSIZ1
+
+    IF STROBE_P1
+    lda #$80
+    sta GRP1
+    ENDIF
     
     sta WSYNC
     sleep DISPMARGIN+10
@@ -593,6 +599,7 @@ _noDecPlayerColour:
     sta WSYNC
     
     ; Timing sensitive -- strobe p1 position
+    .if STROBE_P1
     ldx P1_STROBE_POSITION_R
     lda NextP1StrobeTable,X
     sta P1_STROBE_POSITION_W
@@ -601,8 +608,9 @@ _noDecPlayerColour:
 _strobelooptop
     dex
     bne _strobelooptop
-    SLEEP 4
+    SLEEP 4 ; TODO -- use this
     sta RESP1
+    .endif
     
     sta WSYNC
     
