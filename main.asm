@@ -313,13 +313,21 @@ BLOCK_CMP = VAR3
     beq _addQueueRts
     sta BLOCK_CMP
     
+    ; verify there's a block underneath (not falling)
+    lda BLOCK_B
+    cmp #ROWS
+    bpl ScanLeft
+    ldx BLOCK_L
+    jsr JSR_GetBlockValue_XA
+    beq _addQueueRts
+    
+ScanLeft:    
     ldx BLOCK_L
     beq ScanRight
     dex
     stx BLOCK_L
     beq ScanLeft2
-    
-ScanLeft:
+
 ScanLeft1:
     ldx BLOCK_L
     jsr ScanHelper
@@ -775,6 +783,15 @@ GravLoop
     pha
         ldx VAR1
         jsr JSR_GetBlockValue_XA
+        beq NoGravBlock
+        
+        pha
+            lda GRAVROW
+            ldx VAR1
+            jsr JSR_AddBlockToQueue
+        pla
+        
+NoGravBlock:
         tay
         lda GRAVROW
         ldx VAR1
@@ -782,10 +799,6 @@ GravLoop
     pla
     ldx VAR1
     jsr JSR_SetBlockValue_XA_0
-    
-    lda GRAVROW
-    ldx VAR1
-    jsr JSR_AddBlockToQueue
     
 SkipGravDrop:
 
