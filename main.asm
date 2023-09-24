@@ -7,7 +7,7 @@ ROWSUB = 2
 ROWS = 10
 WIDTH = 6
 SL_PER_SUBROW = 8
-CHECK_QUEUE_MAX = 41
+CHECK_QUEUE_MAX = 40
     
     include "cmac.h"
 
@@ -265,21 +265,20 @@ JSR_ror4iterator:
     rts
     
 ; input: x = x coordinate, a = y coordinate
-; clobbers: ITERATOR, a, x, y, WORD_A
+; clobbers: ITERATOR, a, x, y
 JSR_AddBlockToQueue
     stx ITERATOR
     jsr JSR_ror4iterator
     lda CHECK_QUEUE_C
     cmp #CHECK_QUEUE_MAX
     bpl _addQueueRts
-    LOADPTR WORD_A, CHECK_QUEUE_W
     ldy CHECK_QUEUE_C
     inc CHECK_QUEUE_C
     lda ITERATOR
-    sta (WORD_A),y
+    sta CHECK_QUEUE_W,y
     rts
 
-; clobbers: a, x, y, ITERATOR, WORD_A, WORD_B, VAR1, VAR2, VAR3
+; clobbers: a, x, y, ITERATOR, WORD_B, VAR1, VAR2, VAR3
 JSR_ProcessQueue:
 BLOCK_T = VAR2+1
 BLOCK_B = WORD_B
@@ -291,9 +290,8 @@ BLOCK_CMP = VAR3
     lda CHECK_QUEUE_C
     beq _addQueueRts
     dec CHECK_QUEUE_C
-    LOADPTR WORD_A, CHECK_QUEUE_R
     ldy CHECK_QUEUE_C
-    lda (WORD_A),y
+    lda CHECK_QUEUE_R,y
     
     ; x <- x position, a <- y position
     jsr JSR_ror4iterator
@@ -472,6 +470,12 @@ ResetRows
     
     rts
 
+; [py] syms["NextP1StrobeTable"] % 0x100 <= 0x100 - 3
+NextP1StrobeTable:
+    hex 02
+    hex 00
+    hex 01
+
 ; main / Entrypoint
 Reset
     CLEAN_START
@@ -503,8 +507,9 @@ clean_loop
     
     lda #$05 + 2*THICCURSOR
     sta NUSIZ0
-    sta NUSIZ1
     sta GRAVROW ; just need to set this to any value between 1 and ROWS inclusive
+    lda #$7
+    sta NUSIZ1
     
     sta WSYNC
     sleep DISPMARGIN+10
@@ -514,11 +519,15 @@ clean_loop
     sleep DISPMARGIN+10
     sta RESP1
     
+    lda #$70
     sta WSYNC
+    sta HMP1
     lda #$F0 - THICCURSOR*$80
     sta HMP0
-    sta HMP1
     sta HMOVE
+    
+    lda #$0
+    sta HMP1
     
     jsr ResetRows
     
@@ -583,7 +592,17 @@ _noDecPlayerColour:
     
     sta WSYNC
     
-    ; TODO -- use this
+    ; Timing sensitive -- strobe p1 position
+    ldx P1_STROBE_POSITION_R
+    lda NextP1StrobeTable,X
+    sta P1_STROBE_POSITION_W
+    tax
+    inx
+_strobelooptop
+    dex
+    bne _strobelooptop
+    SLEEP 4
+    sta RESP1
     
     sta WSYNC
     

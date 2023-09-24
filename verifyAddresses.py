@@ -1,6 +1,7 @@
 # Python script to read `main.sym` and construct a map from symbol name to value
 
 import sys
+import re
 
 def read_sym_file(filename):
     symbol_map = {}
@@ -32,6 +33,9 @@ assert((syms["LINES_CORE_R"] % 0x2000) + 0x400 == syms["LINES_CORE_W"])
 
 SUCCESS = True
 
+def replace_syms(input_str):
+    return re.sub(r'\$\{(\w+)\}', r'syms["\1"]', input_str)
+
 # Python script to read `main.asm`, find lines starting with `; [py]` and eval the remainder of the line
 def execute_py_in_asm(filename):
     global syms
@@ -40,7 +44,7 @@ def execute_py_in_asm(filename):
             for line in f.readlines():
                 line = line.strip();
                 if line.startswith('; [py]'):
-                    code_to_eval = line[6:].strip()
+                    code_to_eval = replace_syms(line[6:].strip())
                     if eval(code_to_eval) is False:
                         print("Failed: ", code_to_eval)
     except FileNotFoundError:
