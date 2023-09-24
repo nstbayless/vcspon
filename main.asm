@@ -599,8 +599,13 @@ GravEnd:
     inc CURY0
     
 VBlankWaitEnd:
+    ldx #227
     lda INTIM
     bne VBlankWaitEnd
+    
+    ; set timer to wait for start of overscan
+    stx TIM64T
+    
     sta WSYNC
 VBlankEnd:
     
@@ -650,27 +655,30 @@ i SET 0
 i SET i+1
     REPEND
     
+WaitForOverscan:
+    ldx #35
+    lda INTIM
+    bne WaitForOverscan
+    stx TIM64T
+    
+OverscanBegin:
+    
+
     ; undo the 'damage' done to CURY during render loop
     clc
     lda #ROWS-1
     adc CURY0
     sta CURY0
-    
-    sta WSYNC
     lda #$0
     sta GRP0
-    
-    REPEAT VISIBLE_ROWS-ROWS*(SL_PER_SUBROW*2+2)-1
-    sta WSYNC
-    REPEND
     
     lda #%01000010
     sta VBLANK
     
-    REPEAT 30
-    STA WSYNC
-    REPEND
 
+WaitForVblank:
+    lda INTIM
+    bne WaitForVblank
     jmp StartOfFrame
 
 kernel_cursor_pre:
@@ -701,7 +709,6 @@ kernel_cursor_post:
     sta GRP0
     rts
     
-
 ZBankEnd
 
     ORG $1FFA
