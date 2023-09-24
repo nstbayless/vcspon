@@ -32,7 +32,7 @@ THICCURSOR = 1
 FLICKER = 0
 LINEOP_WRITE_INDIRECT_ACCESS = 1
 GRAVITY = 1
-STROBE_P1 = 0
+STROBE_P1 = 1
 
 DISPMARGIN = 14
 
@@ -182,6 +182,10 @@ VISIBLE_ROWS = 192
         sta (PTR_TO_BLOCKS_W,X)
         stx PTR_TO_BLOCKS_W
         
+        ; Y &= 7
+        and #$7
+        tay
+        
         ; write LINE opcode
         asl ITERATOR ; multiply x position by 2, because the opcodes are length 2
         pla
@@ -240,7 +244,7 @@ VISIBLE_ROWS = 192
     ENDM
 
 ; input: x is x position, a is y position
-; output: a is value of block
+; output: a is value of block, y is address of block
 ; flags: z if block is 0
 ; clobbers: ITERATOR
 JSR_GetBlockValue_XA
@@ -256,6 +260,11 @@ JSR_SetBlockValue_XA_0
 JSR_SetBlockValue_XA_Y
     SetBlockValue_XA_Y
 _addQueueRts:
+    rts
+    
+JSR_SetBlockValueDirect_XA_Y
+    GetBlockAddr_XA
+    sta (PTR_TO_BLOCKS_W),Y
     rts
     
 JSR_ror4iterator:
@@ -404,6 +413,9 @@ ScanDone:
     ; BLOCK_R: points to one right of rightmost of same colour
     ; BLOCK_T: points to topmost of same colour
     ; BLOCK_B: points to one below bottommost of same colour
+CLEAR_TIMER = 3
+    lda #(CLEAR_TIMER << 3)
+    sta BLOCK_CMP
     
 CheckHor:
     sec
@@ -416,7 +428,8 @@ ClearHor:
     cpx BLOCK_R
     beq CheckVer
     lda BLOCK_START_Y
-    jsr JSR_SetBlockValue_XA_0
+    ldy BLOCK_CMP
+    jsr JSR_SetBlockValue_XA_Y
     inc BLOCK_L
     jmp ClearHor
     
@@ -431,7 +444,8 @@ ClearVer:
     lda BLOCK_T
     cmp BLOCK_B
     beq CheckDone
-    jsr JSR_SetBlockValue_XA_0
+    ldy BLOCK_CMP
+    jsr JSR_SetBlockValue_XA_Y
     inc BLOCK_T
     jmp ClearVer
     
@@ -596,17 +610,23 @@ _noDecPlayerColour:
     adc #$0F
     sta COLUP0
     
+    lda #$FE
+    ldx P1_STROBE_POSITION_R
+    sec
+    sta VAR1
     sta WSYNC
+    
+    SLEEP 3
     
     ; Timing sensitive -- strobe p1 position
     .if STROBE_P1
-    ldx P1_STROBE_POSITION_R
     lda NextP1StrobeTable,X
     sta P1_STROBE_POSITION_W
-    tax
-    inx
+    adc #$0
+    sec
+    ; [py] ${_strobelooptop} % 0x100 != 0xFF
 _strobelooptop
-    dex
+    adc VAR1
     bne _strobelooptop
     SLEEP 4 ; TODO -- use this
     sta RESP1
@@ -820,10 +840,12 @@ GravLoop
     ldx GRAVROW
     dex
     txa
-    pha
+    sta VAR2
         ldx VAR1
         jsr JSR_GetBlockValue_XA
-        beq NoGravBlock
+        beq SkipGravDrop
+        cmp #$8
+        bge SkipGravDrop
         
         pha
             lda GRAVROW
@@ -831,12 +853,11 @@ GravLoop
             jsr JSR_AddBlockToQueue
         pla
         
-NoGravBlock:
         tay
         lda GRAVROW
         ldx VAR1
         jsr JSR_SetBlockValue_XA_Y
-    pla
+    lda VAR2
     ldx VAR1
     jsr JSR_SetBlockValue_XA_0
     
@@ -928,8 +949,41 @@ OverscanBegin:
     sta CURY0
     lda #$0
     sta GRP0
+    sta VAR2
     
+    ldy DECTIMERROW
+    cpy #ROWS
+    bne _stxDecTimerRow
+    ldy #$FF
+_stxDecTimerRow:
+    iny
+    sty DECTIMERROW
+    
+    ldx #WIDTH-1
+    stx VAR1
+_decloop:
+    lda DECTIMERROW
+    ldx VAR1
+    jsr JSR_GetBlockValue_XA
+    cmp #$8
+    blt _next
+    
+    inc VAR2; mark that a decrement occurred
+    ;sec
+    sbc #8
+    sta (PTR_TO_BLOCKS_W),y
+    
+_next
+    dec VAR1
+    bpl _decloop
+_decloopend:
+    
+    ; process check-queue, unless we decremented an explosion this frame
+    ; (gotta choose our battles!)
+    lda VAR2
+    bne _noProcessQueue
     jsr JSR_ProcessQueue
+_noProcessQueue
 
 WaitForVblank:
     lda INTIM

@@ -43,3 +43,11 @@
         inc {1}
 .nextinc
     ENDM
+    
+    MAC bge 
+        bcs {1}
+    ENDM
+    
+    MAC blt
+        bcc {1}
+    ENDM
