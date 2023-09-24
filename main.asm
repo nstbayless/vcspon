@@ -314,6 +314,7 @@ clean_loop
     lda #$05 + 2*THICCURSOR
     sta NUSIZ0
     sta NUSIZ1
+    sta GRAVROW ; just need to set this to any value between 1 and ROWS inclusive
     
     sta WSYNC
     sleep DISPMARGIN+10
@@ -365,17 +366,28 @@ InitBlockValues
     lda #$0
     jsr JSR_SetBlockValue_XA_Y
 
-StartOfFrame
+Kernel:
+StartOfFrame:
     lda #0
     sta VBLANK
     inc TIMER
 
     lda #2
     sta VSYNC
-    sta WSYNC
-    sta WSYNC
+    
+    ; set timer for end of vblank -- we'll check on this later
+    lda #50
+    sta TIM64T
+    
     sta WSYNC
     
+    ; TODO -- use this
+    
+    sta WSYNC
+    
+    ; TODO -- use this
+    
+    sta WSYNC
     lda #$0
     sta VSYNC
     
@@ -481,7 +493,7 @@ ProcessButtonPress
     lda #$80
     and VAR1
     and PREVINPUT
-    sta WSYNC  ; ---------------------------------
+    ;sta WSYNC  ; ---------------------------------
     beq DontSwap
 
 SwapBlocks:
@@ -531,7 +543,7 @@ ProcessDAS
 
     lda DAS
     cmp #$10
-    sta WSYNC ; ----------------------------------
+    ;sta WSYNC ; ----------------------------------
     
     bcc ._dontdas
     
@@ -551,7 +563,7 @@ ProcessDAS
     sta GRAVROW
 _DontWrapGravRow
 
-    lda #2
+    lda #WIDTH
     sta VAR1
 GravLoop
     dec VAR1
@@ -573,7 +585,7 @@ GravLoop
         jsr JSR_SetBlockValue_XA_Y
     pla
     ldx VAR1
-    ;jsr JSR_SetBlockValue_XA_0
+    jsr JSR_SetBlockValue_XA_0
     
 SkipGravDrop:
 
@@ -581,15 +593,16 @@ GravLoopBottom:
     lda #$FF
     and VAR1
     bne GravLoop
+GravEnd:
     ENDIF
-    
-    sta WSYNC ; ---------------------------------
-    
-    REPEAT 37-15
-    sta WSYNC ; ---------------------------------
-    REPEND
 
     inc CURY0
+    
+VBlankWaitEnd:
+    lda INTIM
+    bne VBlankWaitEnd
+    sta WSYNC
+VBlankEnd:
     
 i SET 0
     REPEAT ROWS
