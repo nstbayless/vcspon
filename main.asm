@@ -7,7 +7,7 @@ ROWSUB = 2
 ROWS = 10
 WIDTH = 6
 SL_PER_SUBROW = 8
-CHECK_QUEUE_MAX = 42
+CHECK_QUEUE_MAX = 41
     
     include "cmac.h"
 
@@ -499,7 +499,6 @@ clean_loop
     
     lda #$0F
     sta COLUPF
-    sta COLUP0
     sta COLUP1
     
     lda #$05 + 2*THICCURSOR
@@ -563,13 +562,24 @@ StartOfFrame:
     sta WSYNC
     lda #0
     sta VBLANK
-
     lda #2
     sta VSYNC
 
     ; set timer for end of vblank -- we'll check on this later
     lda #55
     sta TIM64T
+    
+    ; set player colour
+    ldx PLAYER_COLOUR_R
+    beq _noDecPlayerColour
+    dex
+    stx PLAYER_COLOUR_W
+    
+_noDecPlayerColour:
+    txa
+    eor #$FF
+    adc #$0F
+    sta COLUP0
     
     sta WSYNC
     
@@ -620,6 +630,9 @@ ProcessButtonPress
     beq DontSwap
 
 SwapBlocks:
+    ; set player colour
+    lda #$C
+    sta PLAYER_COLOUR_W
     ; SWAP HERE
     ldx CURX0
     lda CURY0
