@@ -11,6 +11,8 @@ PTR_TO_BLOCKS_R ds 2
 PTR_TO_BLOCKS_W ds 2
 VAR1 ds 1
 VAR2 ds 2
+VAR3 ds 1
+VAR4 ds 1
 RNGSEED ds 2
 
 ; during main rendering, this decrements once per row
@@ -24,3 +26,4 @@ CURX0 ds 1
 DAS ds 1
 PREVINPUT ds 1
 GRAVROW ds 1 ; ranges 1-(ROWS-1)
+CHECK_QUEUE_C ds 1

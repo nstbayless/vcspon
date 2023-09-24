@@ -7,6 +7,7 @@ ROWSUB = 2
 ROWS = 10
 WIDTH = 6
 SL_PER_SUBROW = 8
+CHECK_QUEUE_MAX = 42
     
     include "cmac.h"
 
@@ -253,6 +254,188 @@ JSR_SetBlockValue_XA_0
     ldy #$0
 JSR_SetBlockValue_XA_Y
     SetBlockValue_XA_Y
+_addQueueRts:
+    rts
+    
+JSR_ror4iterator:
+    REPEAT 4
+    lsr
+    rol ITERATOR
+    REPEND
+    rts
+    
+; input: x = x coordinate, a = y coordinate
+; clobbers: ITERATOR, a, x, y, WORD_A
+JSR_AddBlockToQueue
+    stx ITERATOR
+    jsr JSR_ror4iterator
+    lda CHECK_QUEUE_C
+    cmp #CHECK_QUEUE_MAX
+    bpl _addQueueRts
+    LOADPTR WORD_A, CHECK_QUEUE_W
+    ldy CHECK_QUEUE_C
+    inc CHECK_QUEUE_C
+    lda ITERATOR
+    sta (WORD_A),y
+    rts
+
+; clobbers: a, x, y, ITERATOR, WORD_A, WORD_B, VAR1, VAR2, VAR3
+JSR_ProcessQueue:
+BLOCK_T = VAR2+1
+BLOCK_B = WORD_B
+BLOCK_START_X = WORD_B+1
+BLOCK_START_Y = VAR4
+BLOCK_L = VAR1
+BLOCK_R = VAR2
+BLOCK_CMP = VAR3
+    lda CHECK_QUEUE_C
+    beq _addQueueRts
+    dec CHECK_QUEUE_C
+    LOADPTR WORD_A, CHECK_QUEUE_R
+    ldy CHECK_QUEUE_C
+    lda (WORD_A),y
+    
+    ; x <- x position, a <- y position
+    jsr JSR_ror4iterator
+    tax
+    lda ITERATOR
+    stx BLOCK_L
+    stx BLOCK_R
+    stx BLOCK_START_X
+    sta BLOCK_T
+    sta BLOCK_B
+    sta BLOCK_START_Y
+    inc BLOCK_B
+    
+    ; BLOCK_CMP <- block at x,y
+    ; (return if block is 0)
+    jsr JSR_GetBlockValue_XA
+    beq _addQueueRts
+    sta BLOCK_CMP
+    
+    ldx BLOCK_L
+    beq ScanRight
+    dex
+    stx BLOCK_L
+    beq ScanLeft2
+    
+ScanLeft:
+ScanLeft1:
+    ldx BLOCK_L
+    jsr ScanHelper
+    bne ScanRight
+    dec BLOCK_L
+    
+ScanLeft2:
+    ldx BLOCK_L
+    jsr ScanHelper
+    bne ScanRight
+    dec BLOCK_L
+    
+ScanRight:
+    inc BLOCK_L
+    inc BLOCK_R
+    ldx BLOCK_R
+    cpx #WIDTH-1
+    beq ScanRight2
+    bpl ScanUp
+    
+ScanRight1:
+    ;ldx BLOCK_R
+    jsr ScanHelper
+    bne ScanUp
+    inc BLOCK_R
+    
+ScanRight2:
+    ldx BLOCK_R
+    jsr ScanHelper
+    bne ScanUp
+    inc BLOCK_R
+    
+ScanUp:
+    dec BLOCK_T
+    bmi ScanDown
+    beq ScanUp2
+
+ScanUp1:
+    ldx BLOCK_START_X
+    jsr ScanHelper
+    bne ScanDown
+    dec BLOCK_T
+    
+ScanUp2:
+    ; lda BLOCK_T
+    ldx BLOCK_START_X
+    jsr ScanHelper
+    bne ScanDown
+    dec BLOCK_T
+
+ScanDown:
+    inc BLOCK_T
+    lda BLOCK_B
+    cmp #ROWS-1
+    beq ScanDown2
+    bpl ScanDone
+
+ScanDown1:
+    ldx BLOCK_START_X
+    ; lda BLOCK_B
+    jsr ScanHelper2
+    bne ScanDone
+    inc BLOCK_B
+
+ScanDown2:
+    lda BLOCK_B
+    ldx BLOCK_START_X
+    jsr ScanHelper2
+    bne ScanDone
+    inc BLOCK_B
+
+ScanDone:
+    ; postcondition:
+    ; BLOCK_L: points to leftmost of same colour
+    ; BLOCK_R: points to one right of rightmost of same colour
+    ; BLOCK_T: points to topmost of same colour
+    ; BLOCK_B: points to one below bottommost of same colour
+    
+CheckHor:
+    sec
+    lda BLOCK_R
+    sbc BLOCK_L
+    cmp #3
+    bmi CheckVer
+ClearHor:
+    ldx BLOCK_L
+    cpx BLOCK_R
+    beq CheckVer
+    lda BLOCK_START_Y
+    jsr JSR_SetBlockValue_XA_0
+    inc BLOCK_L
+    jmp ClearHor
+    
+CheckVer:
+    sec
+    lda BLOCK_B
+    sbc BLOCK_T
+    cmp #3
+    bmi CheckDone
+ClearVer:
+    ldx BLOCK_START_X
+    lda BLOCK_T
+    cmp BLOCK_B
+    beq CheckDone
+    jsr JSR_SetBlockValue_XA_0
+    inc BLOCK_T
+    jmp ClearVer
+    
+CheckDone:
+    rts
+
+ScanHelper:
+    lda BLOCK_T
+ScanHelper2:
+    jsr JSR_GetBlockValue_XA
+    cmp BLOCK_CMP
     rts
 
 ResetRows
@@ -368,13 +551,14 @@ InitBlockValues
 
 Kernel:
 StartOfFrame:
+    inc TIMER
+    sta WSYNC
     lda #0
     sta VBLANK
-    inc TIMER
 
     lda #2
     sta VSYNC
-    
+
     ; set timer for end of vblank -- we'll check on this later
     lda #50
     sta TIM64T
@@ -419,6 +603,51 @@ StartOfFrame:
     and #$80
     ora VAR1
     sta VAR1
+    
+ProcessButtonPress
+    lda #$80
+    and VAR1
+    and PREVINPUT
+    ;sta WSYNC  ; ---------------------------------
+    beq DontSwap
+
+SwapBlocks:
+    ; SWAP HERE
+    ldx CURX0
+    lda CURY0
+    pha
+        pha
+            pha
+                pha
+                    pha
+                        jsr JSR_GetBlockValue_XA
+                        sta VAR2
+                        
+                        ldx CURX0
+                        inx
+                    pla
+                    jsr JSR_GetBlockValue_XA
+                    
+                    tay
+                pla
+                ldx CURX0
+                jsr JSR_SetBlockValue_XA_Y
+                
+                ldx CURX0
+                ldy VAR2
+                inx
+            pla
+            jsr JSR_SetBlockValue_XA_Y
+        pla
+        ldx CURX0
+        jsr JSR_AddBlockToQueue
+    pla
+    ldx CURX0
+    inx
+    jsr JSR_AddBlockToQueue
+    jmp ProcessDAS
+    
+DontSwap
     
 LeftMovement
     
@@ -489,41 +718,6 @@ DownMovement
     dec CURY0
 ._skip_movedown
 
-ProcessButtonPress
-    lda #$80
-    and VAR1
-    and PREVINPUT
-    ;sta WSYNC  ; ---------------------------------
-    beq DontSwap
-
-SwapBlocks:
-    ; SWAP HERE
-    ldx CURX0
-    lda CURY0
-    pha
-        pha
-            pha
-                jsr JSR_GetBlockValue_XA
-                sta VAR2
-                
-                ldx CURX0
-                inx
-            pla
-            jsr JSR_GetBlockValue_XA
-            
-            tay
-        pla
-        ldx CURX0
-        jsr JSR_SetBlockValue_XA_Y
-        
-        ldx CURX0
-        ldy VAR2
-        inx
-    pla
-    jsr JSR_SetBlockValue_XA_Y
-    
-DontSwap
-
 ProcessDAS
     lda VAR1
     eor #$FF
@@ -555,6 +749,8 @@ ProcessDAS
     ora PREVINPUT
     sta PREVINPUT
 ._dontdas
+
+InputEnd:
 
     .IF GRAVITY
     dec GRAVROW
@@ -602,11 +798,11 @@ VBlankWaitEnd:
     ldx #227
     lda INTIM
     bne VBlankWaitEnd
+    sta WSYNC ; ------------
     
     ; set timer to wait for start of overscan
     stx TIM64T
     
-    sta WSYNC
 VBlankEnd:
     
 i SET 0
@@ -659,10 +855,12 @@ WaitForOverscan:
     ldx #35
     lda INTIM
     bne WaitForOverscan
+    stx WSYNC ; ----------
     stx TIM64T
     
 OverscanBegin:
-    
+    lda #%01000010
+    sta VBLANK
 
     ; undo the 'damage' done to CURY during render loop
     clc
@@ -672,9 +870,7 @@ OverscanBegin:
     lda #$0
     sta GRP0
     
-    lda #%01000010
-    sta VBLANK
-    
+    jsr JSR_ProcessQueue
 
 WaitForVblank:
     lda INTIM

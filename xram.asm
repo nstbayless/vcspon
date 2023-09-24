@@ -2,7 +2,7 @@
     ORG $f000
 
 BLOCKS_R ds ROWS*8
-PADDING_R ds 42
+CHECK_QUEUE_R ds CHECK_QUEUE_MAX
 LINES_R ds ROWS*ROWSUB*ROWINSTRC
 
 ; NOTE: xramw and xramr must mirror each other.
@@ -11,7 +11,7 @@ LINES_R ds ROWS*ROWSUB*ROWINSTRC
     ORG $1400
     
 BLOCKS_W ds ROWS*8
-PADDING_W ds 42
+CHECK_QUEUE_W ds CHECK_QUEUE_MAX
 LINES_W ds ROWS*ROWSUB*ROWINSTRC
 
 LINES_CORE_R = LINES_R+6
@@ -23,3 +23,4 @@ XRAM_END ds 0
 ; [py] (syms["LINES_R"] % 0x2000) + 0x400 == syms["LINES_W"]
 ; [py] (syms["LINES_CORE_R"] % 0x2000) + 0x400 == syms["LINES_CORE_W"]
 ; [py] (syms["XRAM_END"] % 0x2000) <= 0x1800
+; [py] (syms["CHECK_QUEUE_W"] % 0x100 <= (0x100 - CHECK_QUEUE_MAX))
