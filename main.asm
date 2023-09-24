@@ -7,7 +7,7 @@ ROWSUB = 2
 ROWS = 10
 WIDTH = 6
 SL_PER_SUBROW = 8
-CHECK_QUEUE_MAX = 40
+CHECK_QUEUE_MAX = 41
     
     include "cmac.h"
 
@@ -165,7 +165,7 @@ VISIBLE_ROWS = 192
     MAC GetBlockValue_XA_y0
         GetBlockAddr_XA
         tay
-        lda (PTR_TO_BLOCKS_R),y
+        lda BLOCKS_R,y
     ENDM
 
 ; input: x is x position, a is y position, y is value
@@ -264,7 +264,7 @@ _addQueueRts:
     
 JSR_SetBlockValueDirect_XA_Y
     GetBlockAddr_XA
-    sta (PTR_TO_BLOCKS_W),Y
+    sta BLOCKS_W,Y
     rts
     
 JSR_ror4iterator:
@@ -487,9 +487,13 @@ ResetRows
 
 ; [py] syms["NextP1StrobeTable"] % 0x100 <= 0x100 - 3
 NextP1StrobeTable:
-    hex 02
+    hex 06
     hex 00
     hex 01
+    hex 00 ; --
+    hex 02
+    hex 04
+    hex 05
 
 ; main / Entrypoint
 Reset
@@ -513,7 +517,6 @@ clean_loop
     
     LOADPTR PTR_TO_LINES_CORE_R, LINES_CORE_R
     LOADPTR PTR_TO_LINES_CORE_W, LINES_CORE_W
-    LOADPTR PTR_TO_BLOCKS_R, BLOCKS_R
     LOADPTR PTR_TO_BLOCKS_W, BLOCKS_W
     
     lda #$0F
@@ -606,26 +609,25 @@ _noDecPlayerColour:
     sta COLUP0
     
     lda #$FE
-    ldx P1_STROBE_POSITION_R
-    sec
+    ldx P1_STROBE_POSITION
     sta VAR1
-    sta WSYNC
-    
-    SLEEP 3
-    
-    ; Timing sensitive -- strobe p1 position
-    .if STROBE_P1
     lda NextP1StrobeTable,X
-    sta P1_STROBE_POSITION_W
+    sta WSYNC
+    ; Timing sensitive -- strobe p1 position
+    SLEEP 3
+    sta P1_STROBE_POSITION
+    and #$3
+    cmp P1_STROBE_POSITION
+    beq _strobelradjust
+_strobelradjust
+    sec
     adc #$0
     sec
     ; [py] ${_strobelooptop} % 0x100 != 0xFF
 _strobelooptop
     adc VAR1
     bne _strobelooptop
-    SLEEP 4 ; TODO -- use this
     sta RESP1
-    .endif
     
     sta WSYNC
     
@@ -882,17 +884,18 @@ GravLoopBottom:
     bne GravLoop
 GravEnd:
     ENDIF
-
-    inc CURY0
-    
-VBlankWaitEnd:
+    inc CURY0    
+    lda P1_STROBE_POSITION
+    and #$3
+    asl
+    sta VAR1
     ldx #227
+VBlankWaitEnd:
     lda INTIM
     bne VBlankWaitEnd
-    sta WSYNC ; ------------
-    
     ; set timer to wait for start of overscan
     stx TIM64T
+    sta WSYNC ; ------------
     
 VBlankEnd:
     
@@ -942,6 +945,7 @@ i SET 0
 i SET i+1
     REPEND
     lda #$0 
+    ;sta wsync
     sta GRP0
     sta GRP1
     
@@ -985,7 +989,7 @@ _decloop:
     inc VAR2; mark that a decrement occurred
     ;sec
     sbc #8
-    sta (PTR_TO_BLOCKS_W),y
+    sta BLOCKS_W,y
     
 _next
     dec VAR1
@@ -1004,6 +1008,21 @@ WaitForVblank:
     bne WaitForVblank
     jmp StartOfFrame
 
+    MAC CALC_EXPLOSION
+    ldy VAR1            ; 3
+    lda BLOCKS_R+1,y      ; 4 (not +)
+    cmp #$8             ; 2
+    ror VAR2            ; 5
+    ror VAR2            ; 5
+    lda BLOCKS_R,y      ; 4 (not +)
+    cmp #$8             ; 2
+    ror VAR2            ; 5
+    lda VAR2            ; 3
+    sta GRP1            ; 3
+    
+                        ; = 31
+    ENDM
+
 kernel_cursor_pre:
     lda #$0
     dec CURY0
@@ -1013,23 +1032,37 @@ kernel_cursor_pre:
     lda #$FF - $7*THICCURSOR
     sta GRP0
     
-    sleep 24+DISPMARGIN ; could use this!
+    CALC_EXPLOSION
+    
+    sleep 2 ; could use this!
     
     lda #$81 + ($7*THICCURSOR)
     
-    ;sta GRP0
+    sta GRP0
+    rts
     
 ._skipdraw
     sta GRP0
+    
+    CALC_EXPLOSION
     
     rts
     
 kernel_cursor_post:
     lda #$0
+    sta VAR2
+    sta GRP1
     cmp CURY0
     IFEQ_LDA #$FF - $7*THICCURSOR
     sta WSYNC
     sta GRP0
+    
+    ; next row
+    lda VAR1
+    clc
+    adc #$8
+    sta VAR1
+    
     rts
     
 ZBankEnd
