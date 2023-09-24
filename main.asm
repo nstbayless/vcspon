@@ -560,7 +560,7 @@ StartOfFrame:
     sta VSYNC
 
     ; set timer for end of vblank -- we'll check on this later
-    lda #50
+    lda #55
     sta TIM64T
     
     sta WSYNC
@@ -783,6 +783,10 @@ GravLoop
     ldx VAR1
     jsr JSR_SetBlockValue_XA_0
     
+    lda GRAVROW
+    ldx VAR1
+    jsr JSR_AddBlockToQueue
+    
 SkipGravDrop:
 
 GravLoopBottom:
@@ -850,9 +854,11 @@ i SET 0
         
 i SET i+1
     REPEND
+    lda #$0 
+    sta GRP0
     
 WaitForOverscan:
-    ldx #35
+    ldx #30
     lda INTIM
     bne WaitForOverscan
     stx WSYNC ; ----------
