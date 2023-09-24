@@ -525,11 +525,6 @@ clean_loop
     sta GRAVROW ; just need to set this to any value between 1 and ROWS inclusive
     lda #$7
     sta NUSIZ1
-
-    IF STROBE_P1
-    lda #$80
-    sta GRP1
-    ENDIF
     
     sta WSYNC
     sleep DISPMARGIN+10
@@ -690,11 +685,16 @@ SwapBlocks:
                     pha
                         jsr JSR_GetBlockValue_XA
                         sta VAR2
+                        cmp #$8
+                        bge DontSwapPLA4
                         
                         ldx CURX0
                         inx
                     pla
                     jsr JSR_GetBlockValue_XA
+                    
+                    cmp #$8
+                    bge DontSwapPLA3
                     
                     tay
                 pla
@@ -713,6 +713,19 @@ SwapBlocks:
     ldx CURX0
     inx
     jsr JSR_AddBlockToQueue
+    jmp ProcessDAS
+    
+DontSwapPLA4
+    pla
+DontSwapPLA3
+    pla
+    pla
+    pla
+    pla
+    lda #$10
+    ; warning yellow if player tries to swap invalid
+    adc PLAYER_COLOUR_R
+    sta PLAYER_COLOUR_W
     jmp ProcessDAS
     
 DontSwap
@@ -930,6 +943,7 @@ i SET i+1
     REPEND
     lda #$0 
     sta GRP0
+    sta GRP1
     
 WaitForOverscan:
     ldx #30
