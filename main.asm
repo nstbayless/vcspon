@@ -895,6 +895,7 @@ VBlankWaitEnd:
     bne VBlankWaitEnd
     ; set timer to wait for start of overscan
     stx TIM64T
+    sta VAR2 ; clears grp1 bits later
     sta WSYNC ; ------------
     
 VBlankEnd:
@@ -970,7 +971,7 @@ OverscanBegin:
     sta VAR2
     
     ldy DECTIMERROW
-    cpy #ROWS
+    cpy #ROWS-1
     bne _stxDecTimerRow
     ldy #$FF
 _stxDecTimerRow:
@@ -1010,7 +1011,7 @@ WaitForVblank:
 
     MAC CALC_EXPLOSION
     ldy VAR1            ; 3
-    lda BLOCKS_R+1,y      ; 4 (not +)
+    lda BLOCKS_R+1,y    ; 4 (not +)
     cmp #$8             ; 2
     ror VAR2            ; 5
     ror VAR2            ; 5
