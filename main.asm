@@ -5,6 +5,7 @@
 ROWINSTRC = 2*16
 ROWSUB = 2
 ROWS = 10
+ROW_INTERVAL = 250
 WIDTH = 6
 SL_PER_SUBROW = 8
 CHECK_QUEUE_MAX = 41
@@ -98,6 +99,17 @@ RoutineB:
     sax COLUBK
     sax COLUBK
     sax COLUBK; one extra, to clear
+    rts
+    
+; clobbers ITERATOR
+; resulting A is random 0-7, but never 4; biased toward 0
+rng6
+    jsr rng
+    and #7
+    cmp #4
+    bne _rtsrng6
+    and #$0
+_rtsrng6
     rts
     
 ; clobbers ITERATOR
@@ -424,6 +436,7 @@ ScanDone:
     ; BLOCK_T: points to topmost of same colour
     ; BLOCK_B: points to one below bottommost of same colour
 CLEAR_TIMER = 3
+
     lda #(CLEAR_TIMER << 3)
     sta BLOCK_CMP
     
@@ -433,6 +446,7 @@ CheckHor:
     sbc BLOCK_L
     cmp #3
     bmi CheckVer
+    jsr RowTimer_OnExplosion
 ClearHor:
     ldx BLOCK_L
     cpx BLOCK_R
@@ -441,7 +455,7 @@ ClearHor:
     ldy BLOCK_CMP
     jsr JSR_SetBlockValue_XA_Y
     inc BLOCK_L
-    jmp ClearHor
+    bpl ClearHor ; gauranteed
     
 CheckVer:
     sec
@@ -449,6 +463,8 @@ CheckVer:
     sbc BLOCK_T
     cmp #3
     bmi CheckDone
+    
+    jsr RowTimer_OnExplosion
 ClearVer:
     ldx BLOCK_START_X
     lda BLOCK_T
@@ -457,7 +473,7 @@ ClearVer:
     ldy BLOCK_CMP
     jsr JSR_SetBlockValue_XA_Y
     inc BLOCK_T
-    jmp ClearVer
+    bpl ClearVer ; gauranteed
     
 CheckDone:
     rts
@@ -572,8 +588,7 @@ InitBlockValues
     lda VAR1
     ora VAR2
     
-    jsr rng
-    and #$7
+    jsr rng6
     cmp #$4
     IFEQ_LDA #$0
     tay
@@ -998,6 +1013,17 @@ OverscanBegin:
     sta GRP0
     sta VAR2
     
+    ; add new rows
+    dec ROW_TIMER
+    bne DecrementExplosionTimers
+    lda #ROW_INTERVAL
+    sta ROW_TIMER
+    
+    jsr JSR_AddRow
+    jmp WaitForVblank
+
+DecrementExplosionTimers
+    ; decrement explosion timers
     ldy DECTIMERROW
     cpy #ROWS-1
     bne _stxDecTimerRow
@@ -1093,6 +1119,49 @@ kernel_cursor_post:
     sta VAR1
     
     rts
+    
+JSR_AddRow:
+    ; first check for topping out
+    ldy #WIDTH-1
+    lda #$0
+check_topout_loop:
+    cmp BLOCKS_R,y
+    bne TopOut
+    dey
+    bpl check_topout_loop
+
+shift_rows_up:
+    lda #WIDTH-1
+    sta VAR3
+    lda #ROWS
+    sta VAR4
+    
+    ; TODO
+    
+add_new_rows:
+    lda #WIDTH-1
+    sta VAR1
+    
+add_new_rows_loop:
+    jsr rng6
+    tay
+    lda #$0
+    ldx VAR1
+    jsr JSR_SetBlockValue_XA_Y
+    
+    dec VAR1
+    bpl add_new_rows_loop
+    
+    rts
+    
+RowTimer_OnExplosion:
+    lda #ROW_INTERVAL
+    sta ROW_TIMER
+    rts
+    
+TopOut:
+    ; TODO
+    jmp Reset
     
 ZBankEnd
 
