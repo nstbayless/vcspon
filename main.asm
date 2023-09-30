@@ -150,6 +150,15 @@ _memcpy_loop:
 
 VISIBLE_ROWS = 192
 
+    MAC ADD_WORD_IMM
+        lda {1}   ; 3
+        adc {2}      ; 2
+        sta {1}   ; 3
+        lda #$0      ; 2
+        adc {1}+1 ; 3
+        sta {1}+1 ; 3
+    ENDM
+
 ; input: x is x position, a is y position
 ; output: a is index of block
 ; clobbers: ITERATOR
@@ -329,6 +338,7 @@ BLOCK_CMP = VAR3
     jsr JSR_GetBlockValue_XA
     beq _addQueueRts
     
+    
 ScanLeft:    
     ldx BLOCK_L
     beq ScanRight
@@ -451,7 +461,7 @@ ClearVer:
     
 CheckDone:
     rts
-
+    
 ScanHelper:
     lda BLOCK_T
 ScanHelper2:
@@ -893,25 +903,25 @@ GravEnd:
 VBlankWaitEnd:
     lda INTIM
     bne VBlankWaitEnd
+    stx WSYNC
     ; set timer to wait for start of overscan
     stx TIM64T
     sta VAR2 ; clears grp1 bits later
-    sta WSYNC ; ------------
+    LOADPTR WORD_A, LINES_R
+    LOADPTR WORD_B, (LINES_R+32)
+    lda #ROWS-1
+    sta VAR3
     
 VBlankEnd:
+
+RenderLoopTop:
+    jsr kernel_cursor_pre
     
-i SET 0
-    REPEAT ROWS
-        SUBROUTINE
-        
-        jsr kernel_cursor_pre
-        
-        lda #SL_PER_SUBROW
-        
-        sta ITERATOR
+    lda #SL_PER_SUBROW
+    
+    sta ITERATOR
         
 .rowloop
-
     IF FLICKER == 1
         lda TIMER
         lsr
@@ -921,37 +931,55 @@ i SET 0
         bcc .kernrow1
 .kernrow0
         sta WSYNC
-        SLEEP DISPMARGIN
-        jsr LINES_R+64*i
-        
+        lda #>(.endEven-1)
+        pha
+        lda #<(.endEven-1)
+        pha
+        SLEEP 5
+        jmp (WORD_A)
+.endEven:
         sta WSYNC
-        SLEEP DISPMARGIN
-        jsr LINES_R+32+64*i
-        bcs .endkernrow ; guaranteed
+        lda #>(.endkernrow-1)
+        pha
+        lda #<(.endkernrow-1)
+        pha
+        SLEEP 5
+        jmp (WORD_B)
 .kernrow1
         sta WSYNC
-        SLEEP DISPMARGIN
-        jsr LINES_R+32+64*i
-        
+        lda #>(.endOdd-1)
+        pha
+        lda #<(.endOdd-1)
+        pha
+        SLEEP 5
+        jmp (WORD_B)
+.endOdd:
         sta WSYNC
-        SLEEP DISPMARGIN
-        jsr LINES_R+64*i
+        lda #>(.endkernrow-1)
+        pha
+        lda #<(.endkernrow-1)
+        pha
+        SLEEP 5
+        jmp (WORD_A)
 .endkernrow
         dec ITERATOR
         bne .rowloop
         
         ; cursor
         jsr kernel_cursor_post
+        ADD_WORD_IMM WORD_A, #64
+        ADD_WORD_IMM WORD_B, #64
         
-i SET i+1
-    REPEND
+        dec VAR3
+        bpl RenderLoopTop
+    
+RenderLoopDone:
     lda #$0 
-    ;sta wsync
     sta GRP0
     sta GRP1
     
 WaitForOverscan:
-    ldx #30
+    ldx #29
     lda INTIM
     bne WaitForOverscan
     stx WSYNC ; ----------
