@@ -5,6 +5,7 @@
 ROWINSTRC = 2*16
 ROWSUB = 2
 ROWS = 10
+ROW_STRIDE = 8
 ROW_INTERVAL = 250
 WIDTH = 6
 SL_PER_SUBROW = 8
@@ -101,43 +102,9 @@ RoutineB:
     sax COLUBK
     sax COLUBK
     sax COLUBK; one extra, to clear
-    rts
+    rts    
     
-; clobbers ITERATOR
-; resulting A is random 0-7, but never 4; biased toward 0
-rng6
-    jsr rng
-    and #7
-    cmp #4
-    bne _rtsrng6
-    and #$0
-_rtsrng6
-    rts
-    
-; clobbers ITERATOR
-; resulting A is random
-rng:
-    eor RNGSEED+0
-    sta RNGSEED+0
-    pha
-    lda #$8
-    sta ITERATOR
-    pla
-    
-.rngloop0
-    asl
-    rol RNGSEED+1
-    bcc .rngloop1
-    
-    eor #$6B
-
-.rngloop1:
-    
-    dec ITERATOR
-    bne .rngloop0
-    sta RNGSEED+0
-    rts
-    
+    include "rng.asm"
 
 RoutineBPost:
     sta (#$00),y
@@ -147,11 +114,11 @@ RoutineBPost:
 
     ; input: y, WORD_A, WORD_B
     ; clobbers: a,x
-    ; y <- 0
     ; if y is 0, copy 256 bytes.
+    ; y <- 0, x <- 0
 memcpy
-_memcpy_loop:
     ldx #$0
+_memcpy_loop:
     lda (WORD_A,x)
     sta (WORD_B,x)
     inc WORD_A
@@ -488,7 +455,7 @@ ScanHelper2:
     rts
 
 ResetRows
-    lda #ROWS
+    lda #ROWS-1
     sta ITERATOR
     
 .ResetRowsLoop
@@ -525,6 +492,10 @@ NextP1StrobeTable:
 
 ; main / Entrypoint
 Reset
+    inc $F1
+    dec $F2
+    inc $F3
+    dec $F4
     CLEAN_START
     lda $F0
     eor $F1
@@ -673,7 +644,7 @@ _strobelooptop
     ; we'll get glitches if the queue fills up.
 ThrottleIfQueueNearlyFull
     lda CHECK_QUEUE_C
-    cmp #CHECK_QUEUE_MAX-6
+    cmp #CHECK_QUEUE_MAX-WIDTH-3
     blt DoNotThrottle
     
     ; FIXME: why does this glitch?
@@ -970,6 +941,17 @@ OverscanBegin:
     sta GRP0
     sta VAR2
     
+CheckShiftUp
+    ; check if we need to shift up
+    
+    if DROP_TOP == 0
+    bit SHIFT_UP
+    bpl NoShiftUp
+    dec SHIFT_UP
+    jmp ShiftUp
+    endif
+    
+NoShiftUp
     ; add new rows
     dec ROW_TIMER
     bne DecrementExplosionTimers
@@ -1070,6 +1052,74 @@ TopOut:
     jmp Reset
     
     include "display_routines.asm"
+    
+ShiftUp
+    ldy #ROW_STRIDE
+    ldx #0
+    
+ShiftLoop
+    lda BLOCKS_R,y
+    sta BLOCKS_W,x
+    iny
+    inx
+    cpy #(ROW_STRIDE*ROWS)
+    blt ShiftLoop
+    
+    ldx #$0    
+    
+    LOADPTR WORD_A, LINES_CORE_W
+    LOADPTR WORD_B, (LINES_CORE_R+ROWSUB*ROWINSTRC)
+    ldx #ROWS*ROWSUB-2
+ShiftRow
+    ldy #(WIDTH-1)*2
+    
+ShiftRowLoop
+    lda (WORD_B),y
+    sta (WORD_A),y
+    dey
+    dey
+    bpl ShiftRowLoop
+    
+NextRow:
+    dex
+    beq _nextrowrts
+    
+    cpx #$10
+    bne EndPseudoKernelWait
+    lda #$0
+PseudoKernelWait
+    cmp INTIM
+    bne PseudoKernelWait
+    sta WSYNC
+    sta WSYNC
+    sta VBLANK
+    lda #2
+    sta VSYNC
+    lda #54
+    sta TIM64T
+    sta WSYNC
+    lda #$0
+    sta WSYNC
+    sta VSYNC
+EndPseudoKernelWait
+
+    
+    clc
+    ADD_WORD_IMM WORD_A, #ROWINSTRC
+    clc
+    ADD_WORD_IMM WORD_B, #ROWINSTRC
+    jmp ShiftRow
+    
+_nextrowrts
+    ; randomize bottom row now
+    lda #WIDTH-1
+    sta VAR3
+    
+newrowrngloop:
+    dec VAR3
+    bpl newrowrngloop
+    
+    jmp PreRender
     
 ZBankEnd
 
