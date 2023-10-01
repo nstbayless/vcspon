@@ -562,8 +562,6 @@ InitBlockValues
     ora VAR2
     
     jsr rng6
-    cmp #$4
-    IFEQ_LDA #$0
     tay
     
     lda VAR2
@@ -949,9 +947,15 @@ CheckShiftUp
     bpl NoShiftUp
     dec SHIFT_UP
     jmp ShiftUp
+NoShiftUp
+    bvc NoShiftUp2
+    lda #$0
+    sta SHIFT_UP
+    jsr RandomizeBottomRow
+    jmp WaitForVblank
+NoShiftUp2
     endif
     
-NoShiftUp
     ; add new rows
     dec ROW_TIMER
     bne DecrementExplosionTimers
@@ -1112,14 +1116,45 @@ EndPseudoKernelWait
     
 _nextrowrts
     ; randomize bottom row now
+    
+    jmp PreRender
+    
+RandomizeBottomRow:
     lda #WIDTH-1
     sta VAR3
     
 newrowrngloop:
-    dec VAR3
+    jsr rng
+    pha
+        jsr RandomizeBottomRowHelper
+    pla
+    ror
+    ror
+    ror
+    ror
+    jsr RandomizeBottomRowHelper
     bpl newrowrngloop
+    rts
+
+RandomizeBottomRowHelper
+    and #$7
+    tax
+    ldy RNG8Table,x
+    ldx VAR3
+    lda #ROWS-1
+    jsr JSR_SetBlockValue_XA_Y
+    dec VAR3
+    rts
     
-    jmp PreRender
+RNG8Table
+    hex 01
+    hex 02
+    hex 03
+    hex 05
+    hex 06
+    hex 07
+    hex 01
+    hex 05
     
 ZBankEnd
 
