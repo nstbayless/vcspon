@@ -664,11 +664,25 @@ _strobelooptop
     lda #$0
     sta VSYNC
     
-    tax
+    tax ; x <- 0
     ; var2 ends up nonzero if das timer shouldn't be reset
     sta VAR2
     sta HMP0
     
+    ; this is very important;
+    ; we'll get glitches if the queue fills up.
+ThrottleIfQueueNearlyFull
+    lda CHECK_QUEUE_C
+    cmp #CHECK_QUEUE_MAX-6
+    blt DoNotThrottle
+    
+    ; FIXME: why does this glitch?
+    ;jsr JSR_ProcessQueue
+    
+    jmp PreRender
+DoNotThrottle
+    
+DoInput
     MAC ifneq_incvar2
     beq .skip_inc
     inc VAR2
@@ -863,6 +877,7 @@ ProcessDAS
 InputEnd:
 
     .IF GRAVITY
+DoGravity
     dec GRAVROW
     bne _DontWrapGravRow
     lda #ROWS-1
@@ -911,6 +926,8 @@ GravLoopBottom:
     bne GravLoop
 GravEnd:
     ENDIF
+    
+PreRender
     inc CURY0    
     lda P1_STROBE_POSITION
     and #$3
