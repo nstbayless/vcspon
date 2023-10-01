@@ -35,6 +35,8 @@ LINEOP_WRITE_INDIRECT_ACCESS = 1
 GRAVITY = 1
 STROBE_P1 = 1
 
+DROP_TOP = 0
+
 DISPMARGIN = 14
 
 ; bitwise pointer arithmetic may in the future happen here
@@ -929,69 +931,7 @@ VBlankWaitEnd:
     
 VBlankEnd:
 
-RenderLoopTop:
-    jsr kernel_cursor_pre
-    
-    lda #SL_PER_SUBROW
-    
-    sta ITERATOR
-        
-.rowloop
-    IF FLICKER == 1
-        lda TIMER
-        lsr
-    ELSE
-        sec
-    ENDIF
-        bcc .kernrow1
-.kernrow0
-        sta WSYNC
-        lda #>(.endEven-1)
-        pha
-        lda #<(.endEven-1)
-        pha
-        SLEEP 5
-        jmp (WORD_A)
-.endEven:
-        sta WSYNC
-        lda #>(.endkernrow-1)
-        pha
-        lda #<(.endkernrow-1)
-        pha
-        SLEEP 5
-        jmp (WORD_B)
-.kernrow1
-        sta WSYNC
-        lda #>(.endOdd-1)
-        pha
-        lda #<(.endOdd-1)
-        pha
-        SLEEP 5
-        jmp (WORD_B)
-.endOdd:
-        sta WSYNC
-        lda #>(.endkernrow-1)
-        pha
-        lda #<(.endkernrow-1)
-        pha
-        SLEEP 5
-        jmp (WORD_A)
-.endkernrow
-        dec ITERATOR
-        bne .rowloop
-        
-        ; cursor
-        jsr kernel_cursor_post
-        ADD_WORD_IMM WORD_A, #64
-        ADD_WORD_IMM WORD_B, #64
-        
-        dec VAR3
-        bpl RenderLoopTop
-    
-RenderLoopDone:
-    lda #$0 
-    sta GRP0
-    sta GRP1
+    include "display.asm"
     
 WaitForOverscan:
     ldx #29
@@ -1062,63 +1002,6 @@ WaitForVblank:
     lda INTIM
     bne WaitForVblank
     jmp StartOfFrame
-
-    MAC CALC_EXPLOSION
-    ldy VAR1            ; 3
-    lda BLOCKS_R+1,y    ; 4 (not +)
-    cmp #$8             ; 2
-    ror VAR2            ; 5
-    ror VAR2            ; 5
-    lda BLOCKS_R,y      ; 4 (not +)
-    cmp #$8             ; 2
-    ror VAR2            ; 5
-    lda VAR2            ; 3
-    sta GRP1            ; 3
-    
-                        ; = 31
-    ENDM
-
-kernel_cursor_pre:
-    lda #$0
-    dec CURY0
-    sta WSYNC
-    bne ._skipdraw
-    
-    lda #$FF - $7*THICCURSOR
-    sta GRP0
-    
-    CALC_EXPLOSION
-    
-    sleep 2 ; could use this!
-    
-    lda #$81 + ($7*THICCURSOR)
-    
-    sta GRP0
-    rts
-    
-._skipdraw
-    sta GRP0
-    
-    CALC_EXPLOSION
-    
-    rts
-    
-kernel_cursor_post:
-    lda #$0
-    sta VAR2
-    sta GRP1
-    cmp CURY0
-    IFEQ_LDA #$FF - $7*THICCURSOR
-    sta WSYNC
-    sta GRP0
-    
-    ; next row
-    lda VAR1
-    clc
-    adc #$8
-    sta VAR1
-    
-    rts
     
 JSR_AddRow:
     ; first check for topping out
@@ -1130,13 +1013,12 @@ check_topout_loop:
     dey
     bpl check_topout_loop
 
+    if DROP_TOP == 1
 shift_rows_up:
     lda #WIDTH-1
     sta VAR3
     lda #ROWS
     sta VAR4
-    
-    ; TODO
     
 add_new_rows:
     lda #WIDTH-1
@@ -1153,6 +1035,13 @@ add_new_rows_loop:
     bpl add_new_rows_loop
     
     rts
+    endif
+    
+    if DROP_TOP == 0
+    lda #$80
+    sta SHIFT_UP ; will 
+    rts
+    endif
     
 RowTimer_OnExplosion:
     lda #ROW_INTERVAL
@@ -1162,6 +1051,8 @@ RowTimer_OnExplosion:
 TopOut:
     ; TODO
     jmp Reset
+    
+    include "display_routines.asm"
     
 ZBankEnd
 
