@@ -945,6 +945,8 @@ CheckShiftUp
     if DROP_TOP == 0
     bit SHIFT_UP
     bpl NoShiftUp
+    lda CHECK_QUEUE_C
+    bne NoShiftUp2
     dec SHIFT_UP
     jmp ShiftUp
 NoShiftUp
@@ -1107,7 +1109,6 @@ PseudoKernelWait
     sta VSYNC
 EndPseudoKernelWait
 
-    
     clc
     ADD_WORD_IMM WORD_A, #ROWINSTRC
     clc
@@ -1115,7 +1116,25 @@ EndPseudoKernelWait
     jmp ShiftRow
     
 _nextrowrts
-    ; randomize bottom row now
+    ; mark bottom row to check
+    
+    ; [py] ${ROWS-1} == 9 # (palindrome)
+    lda #(ROWS-1)
+    ldx #WIDTH
+    stx CHECK_QUEUE_C
+    clc
+    
+_markloop
+    sta CHECK_QUEUE_W-1,x
+    adc #$10
+    dex
+    bne _markloop
+    
+_DecCursorY
+    dec CURY0
+    bpl _NoIncCursorY
+    inc CURY0
+_NoIncCursorY
     
     jmp PreRender
     
