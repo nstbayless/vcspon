@@ -904,11 +904,7 @@ PreRender
     and #$3
     asl
     sta VAR1
-    ldx #227
-    ; UNCLEAR: why do we need one more clock cycle when shifty != 0?
-    lda SHIFTY
-    beq VBlankWaitEnd
-    inx
+    ldx #228
 VBlankWaitEnd:
     stx WSYNC
     lda INTIM
