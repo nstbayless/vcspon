@@ -16,9 +16,11 @@ VAR3 ds 1
 VAR4 ds 1
 RNGSEED ds 2
 
-; during main rendering, this decrements once per row
-; normally, this is an absolute value
+; this is an absolute value
 CURY0 ds 1
+
+; during main rendering, this decrements once per row
+TCURY0 ds 1
 
 ; board column position
 CURX0 ds 1
@@ -31,3 +33,4 @@ DECTIMERROW ds 1
 CHECK_QUEUE_C ds 1
 ROW_TIMER ds 1
 SHIFT_UP ds 1 ; used when DROP_TOP == 0
+SHIFTY ds 1

@@ -897,16 +897,22 @@ GravEnd:
     ENDIF
     
 PreRender
-    inc CURY0    
+    ldx CURY0
+    inx
+    stx TCURY0
     lda P1_STROBE_POSITION
     and #$3
     asl
     sta VAR1
     ldx #227
+    ; UNCLEAR: why do we need one more clock cycle when shifty != 0?
+    lda SHIFTY
+    beq VBlankWaitEnd
+    inx
 VBlankWaitEnd:
+    stx WSYNC
     lda INTIM
     bne VBlankWaitEnd
-    stx WSYNC
     ; set timer to wait for start of overscan
     stx TIM64T
     sta VAR2 ; clears grp1 bits later
@@ -914,6 +920,10 @@ VBlankWaitEnd:
     LOADPTR WORD_B, (LINES_R+32)
     lda #ROWS-1
     sta VAR3
+    ldx SHIFTY
+    beq _nodecshifty
+    dec VAR3
+_nodecshifty
     
 VBlankEnd:
 
@@ -929,12 +939,7 @@ WaitForOverscan:
 OverscanBegin:
     lda #%01000010
     sta VBLANK
-
-    ; undo the 'damage' done to CURY during render loop
-    clc
-    lda #ROWS-1
-    adc CURY0
-    sta CURY0
+    
     lda #$0
     sta GRP0
     sta VAR2
@@ -957,6 +962,12 @@ NoShiftUp
     jmp WaitForVblank
 NoShiftUp2
     endif
+    
+    ; decrement shifty
+    dec SHIFTY
+    bpl _noincshifty
+    inc SHIFTY
+_noincshifty
     
     ; add new rows
     dec ROW_TIMER
@@ -1049,7 +1060,15 @@ add_new_rows_loop:
     endif
     
 RowTimer_OnExplosion:
-    lda #ROW_INTERVAL
+    lda ROW_TIMER
+    cmp #253-100
+    bge _rowmax
+    adc #100
+    sta ROW_TIMER
+    rts
+    
+_rowmax
+    lda #250
     sta ROW_TIMER
     rts
     
@@ -1097,6 +1116,8 @@ PseudoKernelWait
     cmp INTIM
     bne PseudoKernelWait
     sta WSYNC
+    lda #(SL_PER_SUBROW*ROWSUB)
+    sta SHIFTY
     sta WSYNC
     sta VBLANK
     lda #2
@@ -1104,6 +1125,11 @@ PseudoKernelWait
     lda #54
     sta TIM64T
     sta WSYNC
+_DecCursorY
+    dec CURY0
+    bpl _NoIncCursorY
+    inc CURY0
+_NoIncCursorY
     lda #$0
     sta WSYNC
     sta VSYNC
@@ -1129,12 +1155,6 @@ _markloop
     adc #$10
     dex
     bne _markloop
-    
-_DecCursorY
-    dec CURY0
-    bpl _NoIncCursorY
-    inc CURY0
-_NoIncCursorY
     
     jmp PreRender
     

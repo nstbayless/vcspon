@@ -1,3 +1,9 @@
+ShiftDownDuringNewRow:
+    dex
+    bmi RenderLoopTop
+    stx WSYNC
+    bpl ShiftDownDuringNewRow
+
 RenderLoopTop:
     jsr kernel_cursor_pre
     

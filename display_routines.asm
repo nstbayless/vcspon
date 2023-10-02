@@ -15,7 +15,7 @@
 
 kernel_cursor_pre:
     lda #$0
-    dec CURY0
+    dec TCURY0
     sta WSYNC
     bne ._skipdraw
     
@@ -42,7 +42,7 @@ kernel_cursor_post:
     lda #$0
     sta VAR2
     sta GRP1
-    cmp CURY0
+    cmp TCURY0
     IFEQ_LDA #$FF - $7*THICCURSOR
     sta WSYNC
     sta GRP0
