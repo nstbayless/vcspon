@@ -97,7 +97,7 @@ DontSwapPLA3
     ; warning yellow if player tries to swap invalid
     adc PLAYER_COLOUR
     sta PLAYER_COLOUR
-    jmp ProcessDAS
+    bne ProcessDAS ; guaranteed
     
 DontSwap
     

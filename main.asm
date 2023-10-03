@@ -196,6 +196,7 @@ _noDecPlayerColour:
     adc #$0F
     sta COLUP0
     
+StrobeExplosion:
     lda #$FE
     ldx P1_STROBE_POSITION
     sta VAR1
@@ -533,18 +534,6 @@ RandomizeBottomRowHelper
     jsr JSR_SetBlockValue_XA_Y
     dec VAR3
     rts
-    
-RNG8Table
-    hex 01
-    hex 02
-    hex 03
-    hex 05
-    hex 06
-    hex 07
-    
-    ; oops, we're biased a bit toward some blocks over others. Alas...
-    hex 01
-    hex 05
     
 ZBankEnd
 

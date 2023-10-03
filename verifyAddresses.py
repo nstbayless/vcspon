@@ -2,6 +2,7 @@
 
 import sys
 import re
+import os
 
 def read_sym_file(filename):
     symbol_map = {}
@@ -39,6 +40,7 @@ def replace_syms(input_str):
 # Python script to read `main.asm`, find lines starting with `; [py]` and eval the remainder of the line
 def execute_py_in_asm(filename):
     global syms
+    global SUCCESS
     try:
         with open(filename, 'r') as f:
             for line in f.readlines():
@@ -47,14 +49,16 @@ def execute_py_in_asm(filename):
                     code_to_eval = replace_syms(line[6:].strip())
                     if eval(code_to_eval) is False:
                         print("Failed: ", code_to_eval)
+                        SUCCESS = False
     except FileNotFoundError:
         return f"File {filename} not found."
     except Exception as e:
         return f"An error occurred: {e}"
-    
-execute_py_in_asm("main.asm")
-execute_py_in_asm("wram.asm")
-execute_py_in_asm("xram.asm")
+
+
+for filename in os.listdir('.'):
+    if filename.endswith('.asm'):
+        execute_py_in_asm(filename)
 
 #for i in range(syms['ROWS'] * syms['ROWSUB']):
 #   print(i, hex(syms['LINES_CORE_W'] + syms['ROWINSTRC']*i));

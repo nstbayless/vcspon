@@ -19,15 +19,7 @@ JSR_CalcExplosion
     sta GRP1            ; 3
     
                         ; = 31
-    ; rts
-
-sleep15
-    SLEEP 3
     rts
     
-jmpwordb_sleep15:
-    sta WSYNC
-    jsr sleep15
+
     
-jmpwordb:
-    jmp (WORD_B)

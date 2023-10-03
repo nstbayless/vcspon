@@ -49,10 +49,17 @@ RoutineA
     sax COLUBK; one extra, to clear
     rts
     
-    ; UNUSED: 11 bytes
-    REPEAT 32-21
-        hex 00
-    REPEND
+; otherwise unused 11 bytes; hide some routines in here!
+jmpwordb_sleep15:
+    sta WSYNC
+    jsr sleep15
+    
+jmpwordb:
+    jmp (WORD_B)
+    
+sleep15 ; this is actually a useful routine rarely
+    SLEEP 3
+    rts
     
 RoutineB:
     lda #COLA2
@@ -67,13 +74,17 @@ RoutineB:
     sax COLUBK; one extra, to clear
     rts
     
-
 ; [py] syms["NextP1StrobeTable"] % 0x100 <= 0x100 - 3
-NextP1StrobeTable:
-    hex 06
-    hex 00
-    hex 01
-    hex 00 ; [unused]
-    hex 02
+NextP1StrobeTable: ; length 7, overlaps with RNG8Table
     hex 04
+    hex 00
+RNG8Table
+    ; oops, we're biased a bit toward some blocks over others. Alas...
+    hex 01
+    hex 01
+    hex 05
+    hex 06
+    hex 02
+    hex 03
+    hex 07
     hex 05
