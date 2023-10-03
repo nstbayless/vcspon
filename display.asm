@@ -5,8 +5,20 @@ ShiftDownDuringNewRow:
     bpl ShiftDownDuringNewRow
 
 RenderLoopTop:
-    jsr kernel_cursor_pre
+    lda #$FF - $7*THICCURSOR
+    dec TCURY0
+    sta WSYNC
+    bne ._skipdraw
     
+    sta GRP0
+    
+    jsr JSR_CalcExplosion
+    
+    lda #$81 + ($7*THICCURSOR)
+    
+    sta GRP0
+    
+donecursor:
     lda #SL_PER_SUBROW
     
     sta ITERATOR
@@ -35,12 +47,33 @@ RenderLoopTop:
         
 post:
     ; cursor
-    jsr kernel_cursor_post
+    lda #$0
+    sta VAR2
+    sta GRP1
+    cmp TCURY0
+    IFEQ_LDA #$FF - $7*THICCURSOR
+    sta WSYNC
+    sta GRP0
+    
+    ; next row
+    lda VAR1
+    clc
+    adc #$8
+    sta VAR1
     ADD_WORD_IMM WORD_A, #64
     ADD_WORD_IMM WORD_B, #64
     
     dec VAR3
     bpl RenderLoopTop
+    bmi RenderLoopDone
+    
+._skipdraw
+    lda #$0
+    sta GRP0
+    
+    jsr JSR_CalcExplosion
+    
+    jmp donecursor
     
 RenderLoopDone:
     lda #$0 
