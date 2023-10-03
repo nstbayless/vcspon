@@ -5,9 +5,10 @@ LINEOP_WRITE_INDIRECT_ACCESS = 1
 GRAVITY = 1
 STROBE_P1 = 1
 DROP_TOP = 0
-READ_BOTH_INPUTS = 1
-CAN_RESET = 1
-RESET_WAIT = 1
+READ_BOTH_INPUTS = 1 ; read both left and right ports
+CAN_RESET = 1 ; respect the reset latch
+RESET_WAIT = 1 ; display unsync'd red for a bit when resetting.
+TOPDELAY = 35 ; delay before topping out, gives the player extra time to recover. Disable with 0.
 
 DISPMARGIN = 14 ; may be a little baked in actually. Don't change this?
 

@@ -28,6 +28,17 @@
     include "blocks.asm"
     include "queue.asm"
 
+TopOut:
+    if TOPDELAY
+    bit TOPOUT_DELAYED
+    bpl Reset
+    clc
+    ror TOPOUT_DELAYED
+    lda #TOPDELAY
+    sta ROW_TIMER
+    rts
+    endif
+
 ; main / Entrypoint
 Reset
     inc $F1
@@ -437,10 +448,9 @@ WaitForVblank:
 JSR_AddRow:
     ; first check for topping out
     ldy #WIDTH-1
-    lda #$0
 check_topout_loop:
-    cmp BLOCKS_R,y
-    bne TopOut
+    lda BLOCKS_R,y
+    bne JumpToTopOut
     dey
     bpl check_topout_loop
 
@@ -492,12 +502,28 @@ _rowmax
     sta ROW_TIMER
     rts
     
-TopOut:
-    ; TODO
-    jmp Reset
-    
     include "display_routines.asm"
+
+_nextrowrts
+    ; mark bottom row to check
     
+    ; [py] ${ROWS-1} == 9 # (palindrome)
+    lda #(ROWS-1)
+    ldx #WIDTH
+    stx CHECK_QUEUE_C
+    clc
+    
+_markloop
+    sta CHECK_QUEUE_W-1,x
+    adc #$10
+    dex
+    bne _markloop
+    
+    jmp PreRender
+
+JumpToTopOut
+    jmp TopOut
+
 ShiftUp
     ldy #ROW_STRIDE
     ldx #0
@@ -509,6 +535,10 @@ ShiftLoop
     inx
     cpy #(ROW_STRIDE*ROWS)
     blt ShiftLoop
+    
+    if TOPDELAY
+    ror TOPOUT_DELAYED
+    endif
     
     ldx #$0    
     
@@ -559,23 +589,6 @@ EndPseudoKernelWait
     ;clc
     ADD_WORD_IMM WORD_B, #ROWINSTRC
     jmp ShiftRow
-    
-_nextrowrts
-    ; mark bottom row to check
-    
-    ; [py] ${ROWS-1} == 9 # (palindrome)
-    lda #(ROWS-1)
-    ldx #WIDTH
-    stx CHECK_QUEUE_C
-    clc
-    
-_markloop
-    sta CHECK_QUEUE_W-1,x
-    adc #$10
-    dex
-    bne _markloop
-    
-    jmp PreRender
 
 RandomizeBottomRowHelper
     and #$7
