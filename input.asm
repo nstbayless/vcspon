@@ -10,16 +10,26 @@ DoInput
     ; read input
     lda SWCHA
     eor #$FF
+    
+    if READ_BOTH_INPUTS
     sta VAR1
+    endif 
+    
     lsr
     lsr
     lsr
     lsr
+    
+    if READ_BOTH_INPUTS
     ora VAR1
+    endif 
+    
     and #$0F
     sta VAR1
     lda INPT4
+    if READ_BOTH_INPUTS
     and INPT5
+    endif
     eor #$FF
     and #$80
     ora VAR1

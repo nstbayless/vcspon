@@ -68,14 +68,13 @@ post:
     bmi RenderLoopDone
     
 ._skipdraw
+    jsr JSR_CalcExplosion
     lda #$0
     sta GRP0
-    
-    jsr JSR_CalcExplosion
     
     jmp donecursor
     
 RenderLoopDone:
-    lda #$0 
+    lda #$0
     sta GRP0
     sta GRP1

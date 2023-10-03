@@ -5,6 +5,7 @@ LINEOP_WRITE_INDIRECT_ACCESS = 1
 GRAVITY = 1
 STROBE_P1 = 1
 DROP_TOP = 0
+READ_BOTH_INPUTS = 1
 
 DISPMARGIN = 14 ; may be a little baked in actually. Don't change this?
 
