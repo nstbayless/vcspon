@@ -16,23 +16,6 @@
     include "data.asm"
     include "rng.asm"
 
-    ; input: y, WORD_A, WORD_B
-    ; clobbers: a,x
-    ; if y is 0, copy 256 bytes.
-    ; y <- 0, x <- 0
-memcpy
-    ldx #$0
-_memcpy_loop:
-    lda (WORD_A,x)
-    sta (WORD_B,x)
-    inc WORD_A
-    INCEQ WORD_A+1
-    inc WORD_B
-    INCEQ WORD_B+1
-    dey
-    bne _memcpy_loop
-    rts
-
     MAC ADD_WORD_IMM
         lda {1}   ; 3
         adc {2}      ; 2
@@ -44,32 +27,6 @@ _memcpy_loop:
 
     include "blocks.asm"
     include "queue.asm"
-
-ResetRows
-    lda #ROWS-1
-    sta ITERATOR
-    
-.ResetRowsLoop
-    LOADPTR WORD_A, RoutineA
-    
-    lda ITERATOR
-    asl
-    tax
-    lda LINES_CORE_W_ADDR_LOOKUP_LO,x
-    sec
-    sbc #$6
-    sta WORD_B
-    lda LINES_CORE_W_ADDR_LOOKUP_HI,x
-    sbc #$0
-    sta WORD_B+1
-    
-    ldy #64
-    jsr memcpy
-    
-    dec ITERATOR
-    bpl .ResetRowsLoop
-    
-    rts
 
 ; main / Entrypoint
 Reset
@@ -125,7 +82,39 @@ clean_loop
     ;lda #$0
     ;sta HMP1
     
-    jsr ResetRows
+ResetRows
+    lda #ROWS-1
+    sta ITERATOR
+    
+.ResetRowsLoop
+    LOADPTR WORD_A, RoutineA
+    
+    lda ITERATOR
+    asl
+    tax
+    lda LINES_CORE_W_ADDR_LOOKUP_LO,x
+    sec
+    sbc #$6
+    sta WORD_B
+    lda LINES_CORE_W_ADDR_LOOKUP_HI,x
+    sbc #$0
+    sta WORD_B+1
+    
+    ldy #64
+    
+    ldx #$0
+_memcpy_loop:
+    lda (WORD_A,x)
+    sta (WORD_B,x)
+    inc WORD_A
+    ;INCEQ WORD_A+1 ;
+    inc WORD_B
+    INCEQ WORD_B+1
+    dey
+    bne _memcpy_loop
+    
+    dec ITERATOR
+    bpl .ResetRowsLoop
     
 InitBlockValues
     lda #ROWS
@@ -267,8 +256,14 @@ VBlankWaitEnd:
     ; set timer to wait for start of overscan
     stx TIM64T
     sta VAR2 ; clears grp1 bits later
+    
     LOADPTR WORD_A, LINES_R
-    LOADPTR WORD_B, (LINES_R+32)
+    sta WORD_B+1
+    lda #<(LINES_R+32)
+    sta WORD_B
+    ; [py] ${LINES_R} // 0x100 == (${LINES_R} + 32) // 0x100
+    ;LOADPTR WORD_B, (LINES_R+32)
+    
     lda #ROWS-1
     sta VAR3
     ldx SHIFTY
@@ -309,7 +304,21 @@ NoShiftUp
     bvc NoShiftUp2
     lda #$0
     sta SHIFT_UP
-    jsr RandomizeBottomRow
+RandomizeBottomRow:
+    lda #WIDTH-1
+    sta VAR3
+    
+newrowrngloop:
+    jsr rng
+    pha
+        jsr RandomizeBottomRowHelper
+    pla
+    ror
+    ror
+    ror
+    ror
+    jsr RandomizeBottomRowHelper
+    bpl newrowrngloop
     jmp WaitForVblank
 NoShiftUp2
     endif
@@ -507,23 +516,6 @@ _markloop
     bne _markloop
     
     jmp PreRender
-    
-RandomizeBottomRow:
-    lda #WIDTH-1
-    sta VAR3
-    
-newrowrngloop:
-    jsr rng
-    pha
-        jsr RandomizeBottomRowHelper
-    pla
-    ror
-    ror
-    ror
-    ror
-    jsr RandomizeBottomRowHelper
-    bpl newrowrngloop
-    rts
 
 RandomizeBottomRowHelper
     and #$7

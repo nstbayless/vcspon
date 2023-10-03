@@ -36,6 +36,7 @@ i SET i + 1
 
 ; these routines are copied wholesale to XRAM on init.
 ; [py] ${RoutineB} == ${RoutineA} + 32
+; [py] ${RoutineA} // 0x100 == ${RoutineEnd} // 0x100
 RoutineA
     ldx #COLX
     lda #COLA
@@ -73,6 +74,8 @@ RoutineB:
     sax COLUBK
     sax COLUBK; one extra, to clear
     rts
+    
+RoutineEnd
     
 ; [py] syms["NextP1StrobeTable"] % 0x100 <= 0x100 - 3
 NextP1StrobeTable: ; length 7, overlaps with RNG8Table
