@@ -6,6 +6,8 @@ GRAVITY = 1
 STROBE_P1 = 1
 DROP_TOP = 0
 READ_BOTH_INPUTS = 1
+CAN_RESET = 1
+RESET_WAIT = 1
 
 DISPMARGIN = 14 ; may be a little baked in actually. Don't change this?
 
@@ -21,7 +23,6 @@ ROWINSTRC = 2*16
 ROWSUB = 2
 ROWS = 10
 ROW_STRIDE = 8
-ROW_INTERVAL = 250
 WIDTH = 6
 SL_PER_SUBROW = 8
 CHECK_QUEUE_MAX = 42

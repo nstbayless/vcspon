@@ -82,6 +82,16 @@ clean_loop
     ;lda #$0
     ;sta HMP1
     
+    if RESET_WAIT
+    ; wait
+    lda #255
+    sta T1024T
+ResetWait
+    lda INTIM
+    bne ResetWait
+    endif
+    
+    
 ResetRows
     lda #ROWS-1
     sta ITERATOR
@@ -209,7 +219,13 @@ _strobelooptop
     
     sta WSYNC
     
-    ; TODO -- use this
+    ; mostly unused!
+    if CAN_RESET
+    ror SWCHB
+    bcs noreset
+    jmp Reset
+noreset
+    endif
     
     sta WSYNC
     lda #$0
@@ -248,6 +264,14 @@ PreRender
     and #$3
     asl
     sta VAR1
+    
+    ldx LEVEL
+    lda LevelColours,X
+    asl
+    asl
+    asl
+    tay
+    
     ldx #228
 VBlankWaitEnd:
     lda INTIM
@@ -256,7 +280,7 @@ VBlankWaitEnd:
     stx WSYNC
     stx TIM64T
     ; set timer to wait for start of overscan
-    sta VAR2 ; clears grp1 bits later
+    sta VAR2 ; VAR2 <- 0 / clears grp1 bits later
     
     LOADPTR WORD_A, LINES_R
     sta WORD_B+1
@@ -265,7 +289,7 @@ VBlankWaitEnd:
     ; [py] ${LINES_R} // 0x100 == (${LINES_R} + 32) // 0x100
     ;LOADPTR WORD_B, (LINES_R+32)
     
-    stx COLUBK ; draw line at top
+    sty COLUBK ; draw line at top
     
     ldy #ROWS-1
     ldx SHIFTY
@@ -282,6 +306,22 @@ _adjusttime
 VBlankEnd:
 
     include "display.asm"
+    
+CheckLevelUp
+    ; check for level up before overscan, why not
+    ldx LEVEL
+    lda LVL_CLEARS
+    bit SWCHB ; check difficulty
+    bpl nodouble
+    asl
+nodouble
+    cmp LevelExplosionsRequiredToAdvance,X
+    blt WaitForOverscan
+    beq WaitForOverscan
+    
+LevelUp
+    inc LEVEL
+    stx LVL_CLEARS
     
 WaitForOverscan:
     ldx #29
@@ -340,7 +380,14 @@ _noincshifty
     ; add new rows
     dec ROW_TIMER
     bne DecrementExplosionTimers
-    lda #ROW_INTERVAL
+    ldx LEVEL
+    lda LevelRowInterval,X
+    
+    bit SWCHB ; difficulty
+    bvc nohalve
+    lsr
+    adc #$3
+nohalve
     sta ROW_TIMER
     
     jsr JSR_AddRow
@@ -428,15 +475,20 @@ add_new_rows_loop:
     endif
     
 RowTimer_OnExplosion:
-    lda ROW_TIMER
-    cmp #253-100
-    bge _rowmax
-    adc #100
-    sta ROW_TIMER
-    rts
+    inc LVL_CLEARS
+    ldx LEVEL
+    bit SWCHB ; difficulty
+    bvc notfaster
+    inx
+notfaster
+    lda LevelExplosionAddTime,X
+    adc ROW_TIMER
+    bcs _rowmax
+    
+    hex 2C ; bit trick
     
 _rowmax
-    lda #250
+    lda #$FF
     sta ROW_TIMER
     rts
     

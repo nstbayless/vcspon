@@ -76,6 +76,29 @@ RoutineB:
     rts
     
 RoutineEnd
+
+LevelExplosionAddTime:
+    hex 5a
+    hex 40
+    hex 3a
+    hex 34
+    hex 30
+    hex 20
+
+; actually, we start each level with LEVEL clears already.
+LevelExplosionsRequiredToAdvance:
+    hex 15
+    hex 25
+    hex 35
+    hex 2b
+    hex F1
+
+LevelRowInterval:
+    hex FF
+    hex 90
+    hex 60
+    hex 30
+    hex 20
     
 ; [py] syms["NextP1StrobeTable"] % 0x100 <= 0x100 - 3
 NextP1StrobeTable: ; length 7, overlaps with RNG8Table
@@ -84,6 +107,7 @@ NextP1StrobeTable: ; length 7, overlaps with RNG8Table
 RNG8Table
     ; oops, we're biased a bit toward some blocks over others. Alas...
     hex 01
+LevelColours
     hex 01
     hex 05
     hex 06

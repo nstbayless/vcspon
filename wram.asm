@@ -31,4 +31,6 @@ ROW_TIMER ds 1
 SHIFT_UP ds 1 ; used when DROP_TOP == 0
 SHIFTY ds 1
 PLAYER_COLOUR ds 1
-FLICKER_FRAME ; used when FLICKER == 1
+FLICKER_FRAME ds 1; used when FLICKER == 1
+LEVEL ds 1
+LVL_CLEARS ds 1
