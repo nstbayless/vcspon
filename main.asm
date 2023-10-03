@@ -74,35 +74,34 @@ ResetRows
 ; main / Entrypoint
 Reset
     inc $F1
+    bne .cleanstart
     dec $F2
-    inc $F3
-    dec $F4
+.cleanstart
     CLEAN_START
-    lda $F0
+    
+    ; red background while loading
+    lda #$30
+    sta COLUBK
+    
+    eor $F0
     eor $F1
     eor $F2
     sta RNGSEED
     eor $F3
-    eor $F4
+    ;eor $F4
     sta RNGSEED+1
     
     if 0
-    lda #$00
-    tax
+        lda #$00
+        tax
 clean_loop
-    sta $1400,x
-    sta $1500,x
-    sta $1600,x
-    sta $1700,x
-    inx
-    bne clean_loop
+        sta $1400,x
+        sta $1500,x
+        sta $1600,x
+        sta $1700,x
+        inx
+        bne clean_loop
     endif
-    
-    LOADPTR PTR_TO_LINES_CORE_R, LINES_CORE_R
-    LOADPTR PTR_TO_LINES_CORE_W, LINES_CORE_W
-    LOADPTR PTR_TO_BLOCKS_W, BLOCKS_W
-    
-    
     
     sta WSYNC
     lda #$0F

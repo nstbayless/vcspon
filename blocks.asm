@@ -24,14 +24,9 @@
     MAC SetBlockValue_XA_Y
         pha
         GetBlockAddr_XA
-        
-        ; write BLOCK
-        ; [py] syms["BLOCKS_W"] % 0x100 == 0
-        sta PTR_TO_BLOCKS_W
+        tax
         tya
-        ldx #$0
-        sta (PTR_TO_BLOCKS_W,X)
-        stx PTR_TO_BLOCKS_W
+        sta BLOCKS_W,X
         
         ; Y &= 7
         and #$7
