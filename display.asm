@@ -13,55 +13,34 @@ RenderLoopTop:
         
 .rowloop
     IF FLICKER == 1
-        lda TIMER
-        lsr
-    ELSE
-        sec
+        bit FLICKER_FRAME
+        bpl .kernrow1
     ENDIF
-        bcc .kernrow1
 .kernrow0
-        sta WSYNC
-        lda #>(.endEven-1)
-        pha
-        lda #<(.endEven-1)
-        pha
-        SLEEP 5
-        jmp (WORD_A)
-.endEven:
-        sta WSYNC
-        lda #>(.endkernrow-1)
-        pha
-        lda #<(.endkernrow-1)
-        pha
-        SLEEP 5
-        jmp (WORD_B)
-.kernrow1
-        sta WSYNC
-        lda #>(.endOdd-1)
-        pha
-        lda #<(.endOdd-1)
-        pha
-        SLEEP 5
-        jmp (WORD_B)
-.endOdd:
-        sta WSYNC
-        lda #>(.endkernrow-1)
-        pha
-        lda #<(.endkernrow-1)
-        pha
-        SLEEP 5
-        jmp (WORD_A)
+        jsr jmpworda_sleep15
+        jsr jmpwordb_sleep15
 .endkernrow
         dec ITERATOR
         bne .rowloop
+    
+    IF FLICKER == 1
+        beq post
         
-        ; cursor
-        jsr kernel_cursor_post
-        ADD_WORD_IMM WORD_A, #64
-        ADD_WORD_IMM WORD_B, #64
+.kernrow1
+        jsr jmpwordb_sleep15
+        jsr jmpworda_sleep15
+        dec ITERATOR
+        bne .rowloop
+    ENDIF
         
-        dec VAR3
-        bpl RenderLoopTop
+post:
+    ; cursor
+    jsr kernel_cursor_post
+    ADD_WORD_IMM WORD_A, #64
+    ADD_WORD_IMM WORD_B, #64
+    
+    dec VAR3
+    bpl RenderLoopTop
     
 RenderLoopDone:
     lda #$0 

@@ -85,6 +85,8 @@ Reset
     eor $F3
     eor $F4
     sta RNGSEED+1
+    
+    if 0
     lda #$00
     tax
 clean_loop
@@ -94,38 +96,35 @@ clean_loop
     sta $1700,x
     inx
     bne clean_loop
+    endif
     
     LOADPTR PTR_TO_LINES_CORE_R, LINES_CORE_R
     LOADPTR PTR_TO_LINES_CORE_W, LINES_CORE_W
     LOADPTR PTR_TO_BLOCKS_W, BLOCKS_W
     
+    
+    
+    sta WSYNC
     lda #$0F
     sta COLUPF
     sta COLUP1
-    
     lda #$05 + 2*THICCURSOR
     sta NUSIZ0
     sta GRAVROW ; just need to set this to any value between 1 and ROWS inclusive
     lda #$7
     sta NUSIZ1
-    
-    sta WSYNC
-    sleep DISPMARGIN+10
+    sleep DISPMARGIN-11 ; [UNUSED]
     sta RESP0
     
+    ;lda #$70
     sta WSYNC
-    sleep DISPMARGIN+10
-    sta RESP1
-    
-    lda #$70
-    sta WSYNC
-    sta HMP1
+    SLEEP 3; [UNUSED]
     lda #$F0 - THICCURSOR*$80
     sta HMP0
     sta HMOVE
     
-    lda #$0
-    sta HMP1
+    ;lda #$0
+    ;sta HMP1
     
     jsr ResetRows
     
@@ -162,7 +161,7 @@ InitBlockValues
 
 Kernel:
 StartOfFrame:
-    inc TIMER
+  
     sta WSYNC
     lda #0
     sta VBLANK
@@ -173,11 +172,23 @@ StartOfFrame:
     lda #55
     sta TIM64T
     
+    ; update timer
+    if FLICKER
+        inc TIMER
+        lda SHIFTY
+        adc TIMER
+        ror
+        ror
+        sta FLICKER_FRAME
+    else
+        inc TIMER
+    endif
+    
     ; set player colour
-    ldx PLAYER_COLOUR_R
+    ldx PLAYER_COLOUR
     beq _noDecPlayerColour
     dex
-    stx PLAYER_COLOUR_W
+    stx PLAYER_COLOUR
     
 _noDecPlayerColour:
     txa
@@ -191,7 +202,7 @@ _noDecPlayerColour:
     lda NextP1StrobeTable,X
     sta WSYNC
     ; Timing sensitive -- strobe p1 position
-    SLEEP 3
+    SLEEP 3 ; UNUSED
     sta P1_STROBE_POSITION
     and #$3
     cmp P1_STROBE_POSITION
@@ -450,9 +461,8 @@ NextRow:
     
     cpx #$10
     bne EndPseudoKernelWait
-    lda #$0
 PseudoKernelWait
-    cmp INTIM
+    lda INTIM
     bne PseudoKernelWait
     sta WSYNC
     lda #(SL_PER_SUBROW*ROWSUB)
@@ -476,7 +486,7 @@ EndPseudoKernelWait
 
     clc
     ADD_WORD_IMM WORD_A, #ROWINSTRC
-    clc
+    ;clc
     ADD_WORD_IMM WORD_B, #ROWINSTRC
     jmp ShiftRow
     

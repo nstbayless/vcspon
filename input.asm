@@ -35,7 +35,7 @@ ProcessButtonPress
 SwapBlocks:
     ; set player colour
     lda #$C
-    sta PLAYER_COLOUR_W
+    sta PLAYER_COLOUR
     ; SWAP HERE
     ldx CURX0
     lda CURY0
@@ -85,8 +85,8 @@ DontSwapPLA3
     pla
     lda #$10
     ; warning yellow if player tries to swap invalid
-    adc PLAYER_COLOUR_R
-    sta PLAYER_COLOUR_W
+    adc PLAYER_COLOUR
+    sta PLAYER_COLOUR
     jmp ProcessDAS
     
 DontSwap

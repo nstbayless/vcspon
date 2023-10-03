@@ -54,3 +54,21 @@ kernel_cursor_post:
     sta VAR1
     
     rts
+    
+jmpworda_sleep15:
+    sta WSYNC
+    jsr sleep15
+    
+jmpworda:
+    jmp (WORD_A)
+    
+sleep15
+    SLEEP 3
+    rts
+    
+jmpwordb_sleep15:
+    sta WSYNC
+    jsr sleep15
+    
+jmpwordb:
+    jmp (WORD_B)
