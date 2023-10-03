@@ -34,4 +34,11 @@ PLAYER_COLOUR ds 1
 FLICKER_FRAME ds 1; used when FLICKER == 1
 LEVEL ds 1
 LVL_CLEARS ds 1
+
+    if TOPDELAY
 TOPOUT_DELAYED ds 1
+    endif
+    
+    if BASIC_SOUND
+SOUNDVOL ds 1
+    endif

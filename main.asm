@@ -228,6 +228,20 @@ _strobelooptop
     bne _strobelooptop
     sta RESP1
     
+    if BASIC_SOUND
+        lda TIMER
+        ror
+        bcs nosound
+        ldx SOUNDVOL
+        dex
+        bpl noincsoundvol
+        inx
+noincsoundvol
+        stx SOUNDVOL
+        stx AUDV0
+nosound
+    endif
+    
     sta WSYNC
     
     ; mostly unused!
@@ -333,6 +347,13 @@ nodouble
 LevelUp
     inc LEVEL
     stx LVL_CLEARS
+    
+    if BASIC_SOUND
+        lda #38
+        sta SOUNDVOL
+        sta AUDC0
+        sta AUDF0
+    endif
     
 WaitForOverscan:
     ldx #29
@@ -448,6 +469,13 @@ WaitForVblank:
 JSR_AddRow:
     ; first check for topping out
     ldy #WIDTH-1
+    if BASIC_SOUND
+        lda #10
+        sta AUDC0
+        sta AUDF0
+        asl
+        sta SOUNDVOL
+    endif
 check_topout_loop:
     lda BLOCKS_R,y
     bne JumpToTopOut
@@ -485,6 +513,15 @@ add_new_rows_loop:
     endif
     
 RowTimer_OnExplosion:
+    if BASIC_SOUND
+        lda TIMER
+        ora #4
+        sta AUDF0
+        ldx #3
+        stx AUDC0
+        lda #15
+        sta SOUNDVOL
+    endif
     inc LVL_CLEARS
     ldx LEVEL
     bit SWCHB ; difficulty

@@ -46,6 +46,15 @@ SwapBlocks:
     ; set player colour
     lda #$C
     sta PLAYER_COLOUR
+    if BASIC_SOUND
+        ldx SOUNDVOL
+        bne .noswapsound
+        sta AUDF0
+        sta AUDC0
+        lsr
+        sta SOUNDVOL
+.noswapsound
+    endif
     ; SWAP HERE
     ldx CURX0
     lda CURY0
