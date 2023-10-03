@@ -34,3 +34,4 @@ CHECK_QUEUE_C ds 1
 ROW_TIMER ds 1
 SHIFT_UP ds 1 ; used when DROP_TOP == 0
 SHIFTY ds 1
+SOUNDV ds 1

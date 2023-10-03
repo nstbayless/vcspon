@@ -587,6 +587,10 @@ StartOfFrame:
     sta VBLANK
     lda #2
     sta VSYNC
+    
+    ; set frequency
+    lda #30
+    sta AUDF0
 
     ; set timer for end of vblank -- we'll check on this later
     lda #55
@@ -627,7 +631,13 @@ _strobelooptop
     
     sta WSYNC
     
-    ; TODO -- use this
+    ldx SOUNDV
+    dex
+    bpl _noupv
+    inx
+_noupv
+    stx SOUNDV
+    stx AUDV0
     
     sta WSYNC
     lda #$0
@@ -676,6 +686,11 @@ DoInput
     ora VAR1
     sta VAR1
     
+    ; sound when moving
+    beq ProcessButtonPress
+    lda #6
+    sta AUDC0
+    
 ProcessButtonPress
     lda #$80
     and VAR1
@@ -684,11 +699,13 @@ ProcessButtonPress
     beq DontSwap
 
 SwapBlocks:
-    ; set player colour
+    ; set player colour, volum
     lda #$C
     sta PLAYER_COLOUR_W
+    sta SOUNDV
     ; SWAP HERE
     ldx CURX0
+    
     lda CURY0
     pha
         pha
