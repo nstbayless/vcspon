@@ -7,7 +7,12 @@ ShiftDownDuringNewRow:
 RenderLoopTop:
     lda #$FF - $7*THICCURSOR
     dec TCURY0
-    sta WSYNC
+    if FLICKER == 0
+        ; the timing is tight enough that flicker brings us past wsync
+        sta WSYNC
+    else
+        sleep 7
+    endif
     bne ._skipdraw
     
     sta GRP0
@@ -23,26 +28,29 @@ donecursor:
     
     sta ITERATOR
         
-.rowloop
+        
+    ; [py] ${rowloop} // 0x100 == ${post} // 0x100
+rowloop
+flickersrc
     IF FLICKER == 1
         bit FLICKER_FRAME
-        bpl .kernrow1
+        bpl kernrow1
     ENDIF
-.kernrow0
+kernrow0
         jsr jmpworda_sleep15
         jsr jmpwordb_sleep15
-.endkernrow
+endkernrow
         dec ITERATOR
-        bne .rowloop
+        bne rowloop
     
     IF FLICKER == 1
         beq post
-        
-.kernrow1
+
+kernrow1
         jsr jmpwordb_sleep15
         jsr jmpworda_sleep15
         dec ITERATOR
-        bne .rowloop
+        bne rowloop
     ENDIF
         
 post:

@@ -28,14 +28,36 @@
     include "blocks.asm"
     include "queue.asm"
 
+RandomizeBottomRowHelper
+    and #$7
+    tax
+    ldy RNG8Table,x
+    ldx VAR3
+    lda #ROWS-1
+    jsr JSR_SetBlockValue_XA_Y
+    dec VAR3
+    rts
+
+    include "display_routines.asm"
+
 TopOut:
     if TOPDELAY
     bit TOPOUT_DELAYED
     bpl Reset
     clc
     ror TOPOUT_DELAYED
-    lda #TOPDELAY
+    ldx LEVEL
+    lda TopOutGracePeriod,X
     sta ROW_TIMER
+    
+    if SOUNDVOL
+    lda #34
+    sta AUDC0
+    sta AUDF0
+    lda #22
+    sta SOUNDVOL
+    endif
+    
     rts
     endif
 
@@ -217,12 +239,13 @@ StrobeExplosion:
     sta P1_STROBE_POSITION
     and #$3
     cmp P1_STROBE_POSITION
+    ; [py] ${_strobelradjust} % 0x100 != 0
     beq _strobelradjust
 _strobelradjust
     sec
     adc #$0
     sec
-    ; [py] ${_strobelooptop} % 0x100 != 0xFF
+    ; [py] ${_strobelooptop} % 0x100 < 0xFB
 _strobelooptop
     adc VAR1
     bne _strobelooptop
@@ -538,8 +561,6 @@ _rowmax
     lda #$FF
     sta ROW_TIMER
     rts
-    
-    include "display_routines.asm"
 
 _nextrowrts
     ; mark bottom row to check
@@ -626,16 +647,6 @@ EndPseudoKernelWait
     ;clc
     ADD_WORD_IMM WORD_B, #ROWINSTRC
     jmp ShiftRow
-
-RandomizeBottomRowHelper
-    and #$7
-    tax
-    ldy RNG8Table,x
-    ldx VAR3
-    lda #ROWS-1
-    jsr JSR_SetBlockValue_XA_Y
-    dec VAR3
-    rts
     
 ZBankEnd
 

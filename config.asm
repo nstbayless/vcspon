@@ -8,7 +8,7 @@ DROP_TOP = 0
 READ_BOTH_INPUTS = 1 ; read both left and right ports
 CAN_RESET = 1 ; respect the reset latch
 RESET_WAIT = 1 ; display unsync'd red for a bit when resetting.
-TOPDELAY = 35 ; delay before topping out, gives the player extra time to recover. Disable with 0.
+TOPDELAY = 1 ; grace period before topping out, gives the player extra time to recover.
 
 DISPMARGIN = 14 ; may be a little baked in actually. Don't change this?
 

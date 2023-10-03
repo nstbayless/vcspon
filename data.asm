@@ -73,9 +73,17 @@ RoutineB:
     sax COLUBK
     sax COLUBK
     sax COLUBK; one extra, to clear
+TopOutGracePeriod
     rts
     
 RoutineEnd
+
+    ; more grace period
+    hex 40
+    hex 38
+    hex 30
+    hex 2C
+    hex 16
 
 LevelExplosionAddTime:
     hex 5a
