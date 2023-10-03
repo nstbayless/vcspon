@@ -250,11 +250,12 @@ PreRender
     sta VAR1
     ldx #228
 VBlankWaitEnd:
-    stx WSYNC
     lda INTIM
     bne VBlankWaitEnd
-    ; set timer to wait for start of overscan
+    
+    stx WSYNC
     stx TIM64T
+    ; set timer to wait for start of overscan
     sta VAR2 ; clears grp1 bits later
     
     LOADPTR WORD_A, LINES_R
@@ -264,12 +265,19 @@ VBlankWaitEnd:
     ; [py] ${LINES_R} // 0x100 == (${LINES_R} + 32) // 0x100
     ;LOADPTR WORD_B, (LINES_R+32)
     
-    lda #ROWS-1
-    sta VAR3
+    stx COLUBK ; draw line at top
+    
+    ldy #ROWS-1
     ldx SHIFTY
-    beq _nodecshifty
-    dec VAR3
+    beq _nodecshifty ; 2/3
+    dey ; 2
 _nodecshifty
+    beq _here ; correct timing
+_here
+    sty VAR3
+_adjusttime
+    lda #$0
+    sta COLUBK
     
 VBlankEnd:
 
