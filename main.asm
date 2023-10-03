@@ -135,14 +135,20 @@ InitBlockValues
     lda #WIDTH
     sta VAR1
 .nextx
-    ldx VAR1
-
-    lda VAR1
-    ora VAR2
     
+    ; spawn blocks on even rows only
+    ; this forces gravity to fix any problems
+    ; (e.g. too many in a row) -- we check for such things
+    ; when blocks fall.
+    ldy #$0
+    lda VAR2
+    ror
+    bcs _norng
     jsr rng6
     tay
+_norng
     
+    ldx VAR1
     lda VAR2
     dex
     jsr JSR_SetBlockValue_XA_Y
@@ -153,11 +159,6 @@ InitBlockValues
     dec VAR2
     bne .nexty
     
-    ldx #$0
-    ldy #$3
-    lda #$0
-    jsr JSR_SetBlockValue_XA_Y
-
 Kernel:
 StartOfFrame:
   
