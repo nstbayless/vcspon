@@ -43,7 +43,7 @@ RandomizeBottomRowHelper
 TopOut:
     if TOPDELAY
     bit TOPOUT_DELAYED
-    bpl Reset
+    bpl TopoutProper
     clc
     ror TOPOUT_DELAYED
     ldx LEVEL
@@ -60,6 +60,12 @@ TopOut:
     
     rts
     endif
+    
+TopoutProper
+    lda #$49
+    sta COLUPF
+    sta CURY0
+    jmp WaitForVblank
 
 ; main / Entrypoint
 Reset
@@ -279,6 +285,10 @@ noreset
     lda #$0
     sta VSYNC
     
+    ; if game over, skip this
+    bit CURY0
+    bvs jmpmaybe_reset
+    
     tax ; x <- 0
     ; var2 ends up nonzero if das timer shouldn't be reset
     sta VAR2
@@ -294,7 +304,25 @@ ThrottleIfQueueNearlyFull
     ; FIXME: why does this glitch?
     ;jsr JSR_ProcessQueue
     
+jmp_preRender
     jmp PreRender
+    
+jmpmaybe_reset:
+    bit GRAVROW
+    bvs checkinput_then_reset
+    inc GRAVROW
+    bpl jmp_preRender
+    
+checkinput_then_reset:
+    lda INPT4
+    if READ_BOTH_INPUTS
+    and INPT5
+    endif
+    and #$80
+    bne jmp_preRender
+    
+    jmp Reset
+    
 DoNotThrottle
     
     ; (read input here.)
@@ -401,6 +429,10 @@ WaitForOverscan:
 OverscanBegin:
     lda #%01000010
     sta VBLANK
+    
+SkipOverscanIfGameOver
+    bit CURY0
+    bvs WaitForVblank
     
     lda #$0
     sta GRP0

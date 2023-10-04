@@ -12,7 +12,8 @@ VAR3 ds 1
 VAR4 ds 1
 RNGSEED ds 2
 
-; this is an absolute value
+; this is an absolute value for cursor y
+; also, bit 6 is set if the game is over.
 CURY0 ds 1
 
 ; during main rendering, this decrements once per row
