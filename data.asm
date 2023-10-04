@@ -58,8 +58,10 @@ jmpwordb_sleep15:
 jmpwordb:
     jmp (WORD_B)
     
+; loads A <- 0
+; takes 15 cycles to execute
 sleep15 ; this is actually a useful routine rarely
-    SLEEP 3
+    lda RESERVED_ZERO ; 3
     rts
     
 RoutineB:
@@ -86,25 +88,10 @@ RoutineEnd
     hex 16
 
 LevelExplosionAddTime:
-    hex 5a
+    hex 6a
     hex 40
     hex 3a
     hex 34
-    hex 30
-    hex 20
-
-; actually, we start each level with LEVEL clears already.
-LevelExplosionsRequiredToAdvance:
-    hex 15
-    hex 25
-    hex 35
-    hex 2b
-    hex F1
-
-LevelRowInterval:
-    hex FF
-    hex 90
-    hex 60
     hex 30
     hex 20
     
@@ -122,4 +109,43 @@ LevelColours
     hex 02
     hex 03
     hex 07
+    hex 05
+
+    MAC DigAlt
+    dv.b #(({1} << 0) | ({2} << 2) | ({3} << 4))
+    ENDM
+
+DigitsAlt
+    hex 49 ;DigAlt 1, 1, 1 ; 1
+    hex 18 ;DigAlt 0, 3, 0 ; 2
+    hex 00 ;DigAlt 0, 0, 0 ; 3
+    hex 46 ;DigAlt 3, 0, 1 ; 4
+    hex 03 ;DigAlt 3, 0, 0 ; 5
+LevelExplosionsRequiredToAdvance:
+    hex 2B ;DigAlt 2, 5, 0 ; F
+    
+    ; actually, we start each level with LEVEL clears already.
+
+    hex 2f
+    hex 39
+    hex 2b
+    hex F1
+
+LevelRowInterval:
+    hex FF
+    hex 90
+    hex 60
+    hex 30
+    hex 20
+    
+DigitElements
+    hex 07
+    hex 01
+    hex 01
+    
+    hex 07
+    hex 04
+    
+    hex 07
+    hex 05
     hex 05

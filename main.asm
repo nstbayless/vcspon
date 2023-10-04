@@ -320,11 +320,21 @@ PreRender
     asl
     tay
     
-    ldx #228
 VBlankWaitEnd:
     lda INTIM
+    if DISPLAY_DIGITS
+    beq doneVblankEnd
+    cmp #15 ; scanline for special
+    
     bne VBlankWaitEnd
     
+    include "digits.asm"
+    else
+    bne VBlankWaitEnd
+    endif
+    
+doneVblankEnd    
+    ldx #228
     stx WSYNC
     stx TIM64T
     ; set timer to wait for start of overscan
@@ -359,10 +369,13 @@ CheckLevelUp
     ; check for level up before overscan, why not
     ldx LEVEL
     lda LVL_CLEARS
+    
+    if 0
     bit SWCHB ; check difficulty
     bpl nodouble
     asl
 nodouble
+    endif
     cmp LevelExplosionsRequiredToAdvance,X
     blt WaitForOverscan
     beq WaitForOverscan

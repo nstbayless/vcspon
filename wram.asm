@@ -42,3 +42,5 @@ TOPOUT_DELAYED ds 1
     if BASIC_SOUND
 SOUNDVOL ds 1
     endif
+    
+RESERVED_ZERO ; always 0
