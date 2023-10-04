@@ -248,15 +248,11 @@ noreset
     sta WSYNC
     lda #$0
     sta VSYNC
+    sta HMP0
     
     ; if game over, skip this
     bit CURY0
     bvs jmpmaybe_reset
-    
-    tax ; x <- 0
-    ; var2 ends up nonzero if das timer shouldn't be reset
-    sta VAR2
-    sta HMP0
     
     ; this is very important;
     ; we'll get glitches if the queue fills up.
@@ -383,6 +379,9 @@ LevelUp
 PreWaitForOverScan:
     ldx #29
     stx WSYNC
+    if CURSOR_SLIDE
+        stx HMOVE ; 3/3
+    endif
 
 WaitForOverscan:
     lda INTIM

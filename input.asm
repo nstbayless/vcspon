@@ -1,22 +1,17 @@
 ; this file is an inline routine which checks player input during the kernel.
 
 DoInput
-    MAC ifneq_incvar2
-    beq .skip_inc
-    inc VAR2
-.skip_inc
-    ENDM
     
     ; read input: bit 7 is button pressed, bits 3, 4, 5, 6 are direction
     lda INPT4 ; read button
     asl
     lda SWCHA ; read directional inputs
     ror
+    tay
     eor #$FF
-    sta VAR1
-    
+    tax
+        
 ProcessButtonPress
-    lda VAR1
     and PREVINPUT
     ;sta WSYNC  ; ---------------------------------
     bpl DontSwap
@@ -36,6 +31,7 @@ SwapBlocks:
     endif
     ; SWAP HERE
     ldx CURX0
+    stx PREVINPUT ; this actually just sets the relevant bits of previnput to 0
     lda CURY0
                         jsr JSR_GetBlockValue_XA
                         sta VAR2
@@ -67,7 +63,7 @@ SwapBlocks:
     ldx CURX0
     inx
     jsr JSR_AddBlockToQueue
-    jmp ProcessDAS
+    jmp InputEnd
     
 DontSwapPLA4
 DontSwapPLA3
@@ -75,17 +71,41 @@ DontSwapPLA3
     ; warning yellow if player tries to swap invalid
     adc PLAYER_COLOUR
     sta PLAYER_COLOUR
-    bne ProcessDAS ; guaranteed
+    bne InputEnd ; guaranteed
+    
+ExecuteDas
+    stx VAR1
+    ldy #(DAS_INITIAL - DAS_INTERVAL)
+    bne DoneDasSty ; guaranteed
     
 DontSwap
+DoDAS
+    txa ; a <- raw input
+    and #$78
+    tax
+    and PREVINPUT
+    sta VAR1 ; pressed this frame
+    sty PREVINPUT
+    
+AdjustDASTimer
+    ldy DAS
+    txa
+    bne dontResetDAS
+    ldy #0
+dontResetDAS
+    cpy #DAS_INITIAL
+    bge ExecuteDas
+    iny
+DoneDasSty
+    sty DAS
+DoneDas
+    
     
 LeftMovement
     
     lda #$20
     ldy #$30 ; +3 clocks direction 
     and VAR1
-    ifneq_incvar2
-    and PREVINPUT
     sta WSYNC  ; ---------------------------------
     beq ._skip_moveleft
     lda CURX0
@@ -101,8 +121,6 @@ RightMovement
     ldy #$D0 ; -3 clocks
     lda #$40
     and VAR1
-    ifneq_incvar2
-    and PREVINPUT
     sta WSYNC ; ----------------------------------
     beq ._skip_moveright
     lda CURX0
@@ -119,9 +137,6 @@ UpMovement
     sta WSYNC  ; ---------------------------------
     sta HMOVE ; 1/3
     
-    ifneq_incvar2
-    
-    and PREVINPUT
     beq ._skip_moveup
     dec CURY0
     lda CURY0
@@ -136,10 +151,6 @@ DownMovement
     sta WSYNC  ; ---------------------------------
     sta HMOVE  ; 2/3
     
-    ifneq_incvar2
-    
-    and PREVINPUT
-    
     beq ._skip_movedown
     inc CURY0
     lda CURY0
@@ -148,36 +159,9 @@ DownMovement
     dec CURY0
 ._skip_movedown
 
-ProcessDAS
-    lda VAR1
-    eor #$FF
-    sta PREVINPUT
-    lda VAR2
-    EOR #$0
-    sta WSYNC  ; ---------------------------------
-    sta HMOVE  ; 3/3
-    
-    bne ._dontresetdas
-    sta DAS
-._dontresetdas
-    inc DAS
-    bne ._dontcapdas
-    dec DAS
-._dontcapdas
-
-    lda DAS
-    cmp #$10
-    ;sta WSYNC ; ----------------------------------
-    
-    bcc ._dontdas
-    
-    lda TIMER
-    lsr
-    lsr
-    bcc ._dontdas
-    lda #$7F
-    ora PREVINPUT
-    sta PREVINPUT
-._dontdas
+    if CURSOR_SLIDE == 0
+        stx WSYNC
+        stx HMOVE ; 3/3
+    endif
 
 InputEnd:

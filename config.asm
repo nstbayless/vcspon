@@ -8,6 +8,7 @@ DROP_TOP = 0
 CAN_RESET = 1 ; respect the reset latch
 TOPDELAY = 1 ; grace period before topping out, gives the player extra time to recover.
 DISPLAY_DIGITS = 1
+CURSOR_SLIDE = 1
 
 DISPMARGIN = 14 ; may be a little baked in actually. Don't change this?
 
@@ -28,3 +29,6 @@ SL_PER_SUBROW = 8
 CHECK_QUEUE_MAX = 42
 TOPROW = 5
 BASIC_SOUND = 1
+
+DAS_INITIAL = 14
+DAS_INTERVAL = 3
