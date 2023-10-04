@@ -344,7 +344,7 @@ _here
     sty VAR3
 _adjusttime
     lda #$0
-    sta.abs COLUBK
+    sta COLUBK+$140
     
 VBlankEnd:
 

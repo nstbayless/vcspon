@@ -23,7 +23,7 @@ SwapBlocks:
     if BASIC_SOUND
         ldx SOUNDVOL
         bne .noswapsound
-        sta AUDF0
+        sta AUDF0+$40
         sta AUDC0
         lsr
         sta SOUNDVOL
