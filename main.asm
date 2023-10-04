@@ -40,33 +40,6 @@ RandomizeBottomRowHelper
 
     include "display_routines.asm"
 
-TopOut:
-    if TOPDELAY
-    bit TOPOUT_DELAYED
-    bpl TopoutProper
-    clc
-    ror TOPOUT_DELAYED
-    ldx LEVEL
-    lda TopOutGracePeriod,X
-    sta ROW_TIMER
-    
-    if SOUNDVOL
-    lda #34
-    sta AUDC0
-    sta AUDF0
-    lda #22
-    sta SOUNDVOL
-    endif
-    
-    rts
-    endif
-    
-TopoutProper
-    lda #$49
-    sta COLUPF
-    sta CURY0
-    jmp WaitForVblank
-
 ; main / Entrypoint
 Reset
     inc $F1
@@ -306,9 +279,6 @@ jmpmaybe_reset:
     
 checkinput_then_reset:
     lda INPT4
-    if READ_BOTH_INPUTS
-    and INPT5
-    endif
     and #$80
     bne jmp_preRender
     
@@ -624,7 +594,35 @@ _markloop
     jmp PreRender
 
 JumpToTopOut
-    jmp TopOut
+TopOut:
+    if TOPDELAY
+    bit TOPOUT_DELAYED
+    bpl TopoutProper
+    clc
+    ror TOPOUT_DELAYED
+    ldx LEVEL
+    lda TopOutGracePeriod,X
+    sta ROW_TIMER
+    
+    if SOUNDVOL
+    lda #34
+    sta AUDC0
+    sta AUDF0
+    lda #22
+    sta SOUNDVOL
+    endif
+    
+    rts
+    endif
+    
+TopoutProper
+    lda #$49
+    sta COLUPF
+    sta CURY0
+    if BASIC_SOUND
+        sta AUDF0 ; adjust frequency of final tone
+    endif
+    jmp WaitForVblank
 
 ShiftUp
     ldy #ROW_STRIDE

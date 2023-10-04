@@ -7,40 +7,19 @@ DoInput
 .skip_inc
     ENDM
     
-    ; read input
-    lda SWCHA
+    ; read input: bit 7 is button pressed, bits 3, 4, 5, 6 are direction
+    lda INPT4 ; read button
+    asl
+    lda SWCHA ; read directional inputs
+    ror
     eor #$FF
-    
-    if READ_BOTH_INPUTS
-    sta VAR1
-    endif 
-    
-    lsr
-    lsr
-    lsr
-    lsr
-    
-    if READ_BOTH_INPUTS
-    ora VAR1
-    endif 
-    
-    and #$0F
-    sta VAR1
-    lda INPT4
-    if READ_BOTH_INPUTS
-    and INPT5
-    endif
-    eor #$FF
-    and #$80
-    ora VAR1
     sta VAR1
     
 ProcessButtonPress
-    lda #$80
-    and VAR1
+    lda VAR1
     and PREVINPUT
     ;sta WSYNC  ; ---------------------------------
-    beq DontSwap
+    bpl DontSwap
 
 SwapBlocks:
     ; set player colour
@@ -58,11 +37,6 @@ SwapBlocks:
     ; SWAP HERE
     ldx CURX0
     lda CURY0
-    pha
-        pha
-            pha
-                pha
-                    pha
                         jsr JSR_GetBlockValue_XA
                         sta VAR2
                         cmp #$8
@@ -70,38 +44,33 @@ SwapBlocks:
                         
                         ldx CURX0
                         inx
-                    pla
+                    lda CURY0
                     jsr JSR_GetBlockValue_XA
                     
                     cmp #$8
                     bge DontSwapPLA3
                     
                     tay
-                pla
+                lda CURY0
                 ldx CURX0
                 jsr JSR_SetBlockValue_XA_Y
                 
                 ldx CURX0
                 ldy VAR2
                 inx
-            pla
+            lda CURY0
             jsr JSR_SetBlockValue_XA_Y
-        pla
+        lda CURY0
         ldx CURX0
         jsr JSR_AddBlockToQueue
-    pla
+    lda CURY0
     ldx CURX0
     inx
     jsr JSR_AddBlockToQueue
     jmp ProcessDAS
     
 DontSwapPLA4
-    pla
 DontSwapPLA3
-    pla
-    pla
-    pla
-    pla
     lda #$10
     ; warning yellow if player tries to swap invalid
     adc PLAYER_COLOUR
@@ -112,8 +81,8 @@ DontSwap
     
 LeftMovement
     
-    lda #$04
-    ldy #$30 ; +3 clocks
+    lda #$20
+    ldy #$30 ; +3 clocks direction 
     and VAR1
     ifneq_incvar2
     and PREVINPUT
@@ -130,7 +99,7 @@ LeftMovement
 RightMovement
 
     ldy #$D0 ; -3 clocks
-    lda #$08
+    lda #$40
     and VAR1
     ifneq_incvar2
     and PREVINPUT
@@ -144,7 +113,7 @@ RightMovement
 ._skip_moveright
     
 UpMovement
-    lda #$01
+    lda #$08
     and VAR1
     
     sta WSYNC  ; ---------------------------------
@@ -162,7 +131,7 @@ UpMovement
 ._skip_moveup
     
 DownMovement
-    lda #$02
+    lda #$10
     and VAR1
     sta WSYNC  ; ---------------------------------
     sta HMOVE  ; 2/3
