@@ -99,59 +99,37 @@ dontResetDAS
 DoneDasSty
     sty DAS
 DoneDas
-    
-    
-LeftMovement
-    
-    lda #$20
-    ldy #$30 ; +3 clocks direction 
-    and VAR1
-    sta WSYNC  ; ---------------------------------
-    beq ._skip_moveleft
-    lda CURX0
-    eor #$00
-    beq ._skip_moveleft
-    dec CURX0
-    sty HMP0
-    
-._skip_moveleft
 
 RightMovement
 
-    ldy #$D0 ; -3 clocks
-    lda #$40
-    and VAR1
-    sta WSYNC ; ----------------------------------
-    beq ._skip_moveright
+    asl VAR1
+    bpl ._skip_moveright
     lda CURX0
     cmp #WIDTH-2
     bcs ._skip_moveright
+    ldy #$D0 ; -3 clocks
     sty HMP0
     inc CURX0
 ._skip_moveright
     
-UpMovement
-    lda #$08
-    and VAR1
+LeftMovement
     
-    sta WSYNC  ; ---------------------------------
-    sta HMOVE ; 1/3
+    asl VAR1
+    bpl ._skip_moveleft
+    lda CURX0
+    beq ._skip_moveleft
+    dec CURX0
+    lda #$30 ; +3 clocks direction 
+    sta HMP0
     
-    beq ._skip_moveup
-    dec CURY0
-    lda CURY0
-    cmp #$80
-    bcc ._skip_moveup
-    inc CURY0
-._skip_moveup
+._skip_moveleft
     
 DownMovement
-    lda #$10
-    and VAR1
+    asl VAR1
     sta WSYNC  ; ---------------------------------
-    sta HMOVE  ; 2/3
+    sta HMOVE  ; 1/3
     
-    beq ._skip_movedown
+    bpl ._skip_movedown
     inc CURY0
     lda CURY0
     cmp #ROWS
@@ -163,5 +141,19 @@ DownMovement
         stx WSYNC
         stx HMOVE ; 3/3
     endif
+
+UpMovement
+    asl VAR1
+    
+    sta WSYNC  ; ---------------------------------
+    sta HMOVE ; 2/3
+    
+    bpl ._skip_moveup
+    dec CURY0
+    lda CURY0
+    cmp #$80
+    bcc ._skip_moveup
+    inc CURY0
+._skip_moveup
 
 InputEnd:
