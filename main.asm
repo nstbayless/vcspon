@@ -378,10 +378,6 @@ LevelUp
 
 PreWaitForOverScan:
     ldx #29
-    stx WSYNC
-    if CURSOR_SLIDE
-        stx HMOVE ; 3/3
-    endif
 
 WaitForOverscan:
     lda INTIM

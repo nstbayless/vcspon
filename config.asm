@@ -8,7 +8,7 @@ DROP_TOP = 0
 CAN_RESET = 1 ; respect the reset latch
 TOPDELAY = 1 ; grace period before topping out, gives the player extra time to recover.
 DISPLAY_DIGITS = 1
-CURSOR_SLIDE = 1
+CURSOR_ALLOWED_IN_INCOMING_ROW = 0
 
 DISPMARGIN = 14 ; may be a little baked in actually. Don't change this?
 

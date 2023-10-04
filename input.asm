@@ -100,47 +100,61 @@ DoneDasSty
     sty DAS
 DoneDas
 
-RightMovement
+HorizontalMovement
+    ldx CURX0
 
+RightMovement
     asl VAR1
     bpl ._skip_moveright
-    lda CURX0
-    cmp #WIDTH-2
+    cpx #WIDTH-2
     bcs ._skip_moveright
+    inx
+    asl VAR1
     ldy #$D0 ; -3 clocks
-    sty HMP0
-    inc CURX0
+    bne .endmoveleft ; guaranteed
 ._skip_moveright
     
 LeftMovement
     
     asl VAR1
     bpl ._skip_moveleft
-    lda CURX0
+    txa
     beq ._skip_moveleft
-    dec CURX0
-    lda #$30 ; +3 clocks direction 
-    sta HMP0
+    dex
+    ldy #$30 ; +3 clocks direction 
+.endmoveleft
+    sty HMP0
     
 ._skip_moveleft
+    stx CURX0
+
+VerticalMovement
+    ldx CURY0
     
 DownMovement
     asl VAR1
     sta WSYNC  ; ---------------------------------
     sta HMOVE  ; 1/3
     
-    bpl ._skip_movedown
-    inc CURY0
-    lda CURY0
-    cmp #ROWS
-    bcc ._skip_movedown
-    dec CURY0
-._skip_movedown
-
-    if CURSOR_SLIDE == 0
-        stx WSYNC
-        stx HMOVE ; 3/3
+    bpl _skip_movedown
+    if CURSOR_ALLOWED_IN_INCOMING_ROW
+        cpx #ROWS-1
+        beq _skip_movedown
+        inx
+    else
+        cpx #ROWS-2
+        blt _yes_movedown
+        cpx #ROWS-1
+        bge _skip_movedown
+        
+        lda SHIFTY
+        bne _skip_movedown
+        
+_yes_movedown
+        inx
     endif
+    
+_skip_movedown
 
 UpMovement
     asl VAR1
@@ -149,11 +163,14 @@ UpMovement
     sta HMOVE ; 2/3
     
     bpl ._skip_moveup
-    dec CURY0
-    lda CURY0
-    cmp #$80
-    bcc ._skip_moveup
-    inc CURY0
+    dex
+    bpl ._skip_moveup
+    inx
 ._skip_moveup
+
+    stx CURY0
+
+    stx WSYNC
+    stx HMOVE ; 3/3
 
 InputEnd:

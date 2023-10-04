@@ -90,14 +90,14 @@
     ENDM
 
 ; input: x is x position, a is y position
-; output: a is value of block, y is address of block
+; output: a and x are value of block, y is address of block
 ; flags: z if block is 0
 ; clobbers: ITERATOR
 JSR_GetBlockValue_XA
     ldy #$0
 JSR_GetBlockValue_XA_y0
     GetBlockValue_XA_y0
-    ora #$0
+    tax
     rts
 
 ; clobbers: ITERATOR
