@@ -83,16 +83,16 @@ RoutineEnd
     ; more grace period
     hex 40
     hex 38
-    hex 30
-    hex 2C
-    hex 16
+    hex 40
+    hex 3C
+    hex 1A
 
 LevelExplosionAddTime:
-    hex 6a
-    hex 40
+    hex 52
     hex 3a
-    hex 34
-    hex 30
+    hex 32
+    hex 2e
+    hex 2c
     hex 20
     
 ; [py] syms["NextP1StrobeTable"] % 0x100 <= 0x100 - 3
@@ -121,11 +121,11 @@ DigitsAlt
     hex 00 ;DigAlt 0, 0, 0 ; 3
     hex 46 ;DigAlt 3, 0, 1 ; 4
     hex 03 ;DigAlt 3, 0, 0 ; 5
-LevelExplosionsRequiredToAdvance:
     hex 2B ;DigAlt 2, 5, 0 ; F
     
     ; actually, we start each level with LEVEL clears already.
-
+LevelExplosionsRequiredToAdvance:
+    hex 23
     hex 2f
     hex 39
     hex 2b
@@ -133,9 +133,9 @@ LevelExplosionsRequiredToAdvance:
 
 LevelRowInterval:
     hex FF
-    hex 90
-    hex 60
-    hex 30
+    hex C0
+    hex 70
+    hex 40
     hex 20
     
 DigitElements
