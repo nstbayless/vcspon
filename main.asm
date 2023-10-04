@@ -540,10 +540,16 @@ RowTimer_OnExplosion:
         lda TIMER
         ora #4
         sta AUDF0
-        ldx #3
+        ldx #$83
         stx AUDC0
         lda #15
         sta SOUNDVOL
+    else if TOPDELAY
+        ldx #$80
+    endif
+    
+    if TOPDELAY
+        stx TOPOUT_DELAYED
     endif
     inc LVL_CLEARS
     ldx LEVEL
