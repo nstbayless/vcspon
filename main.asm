@@ -75,10 +75,6 @@ Reset
 .cleanstart
     CLEAN_START
     
-    ; red background while loading
-    lda #$30
-    sta COLUBK
-    
     eor $F0
     eor $F1
     eor $F2
@@ -120,15 +116,6 @@ clean_loop
     
     ;lda #$0
     ;sta HMP1
-    
-    if RESET_WAIT
-    ; wait
-    lda #255
-    sta T1024T
-ResetWait
-    lda INTIM
-    bne ResetWait
-    endif
     
     
 ResetRows
@@ -277,6 +264,10 @@ nosound
     if CAN_RESET
     ror SWCHB
     bcs noreset
+    ;jmp TopoutProper
+    lda TIMER
+    and #7
+    bne noreset
     jmp Reset
 noreset
     endif
@@ -352,7 +343,7 @@ VBlankWaitEnd:
     lda INTIM
     if DISPLAY_DIGITS
     beq doneVblankEnd
-    cmp #15 ; scanline for special
+    cmp #14 ; scanline for special
     
     bne VBlankWaitEnd
     
@@ -364,11 +355,11 @@ VBlankWaitEnd:
 doneVblankEnd    
     ldx #228
     stx WSYNC
+    sta VAR2 ; VAR2 <- 0 / clears grp1 bits later
+    LOADPTR WORD_A, LINES_R
     stx TIM64T
     ; set timer to wait for start of overscan
-    sta VAR2 ; VAR2 <- 0 / clears grp1 bits later
     
-    LOADPTR WORD_A, LINES_R
     sta WORD_B+1
     lda #<(LINES_R+32)
     sta WORD_B
@@ -379,15 +370,15 @@ doneVblankEnd
     
     ldy #ROWS-1
     ldx SHIFTY
-    beq _nodecshifty ; 2/3
+    beq _nodecshifty_ ; 2/3
     dey ; 2
-_nodecshifty
+_nodecshifty_
     beq _here ; correct timing
 _here
     sty VAR3
 _adjusttime
     lda #$0
-    sta COLUBK
+    sta.abs COLUBK
     
 VBlankEnd:
 
@@ -405,8 +396,8 @@ CheckLevelUp
 nodouble
     endif
     cmp LevelExplosionsRequiredToAdvance,X
-    blt WaitForOverscan
-    beq WaitForOverscan
+    blt PreWaitForOverScan
+    beq PreWaitForOverScan
     
 LevelUp
     inc LEVEL
@@ -418,25 +409,27 @@ LevelUp
         sta AUDC0
         sta AUDF0
     endif
-    
-WaitForOverscan:
+
+PreWaitForOverScan:
     ldx #29
+    stx WSYNC
+
+WaitForOverscan:
     lda INTIM
     bne WaitForOverscan
-    stx WSYNC ; ----------
     stx TIM64T
     
 OverscanBegin:
     lda #%01000010
     sta VBLANK
     
-SkipOverscanIfGameOver
-    bit CURY0
-    bvs WaitForVblank
-    
     lda #$0
     sta GRP0
     sta VAR2
+    
+SkipOverscanIfGameOver
+    bit CURY0
+    bvs WaitForVblank
     
 CheckShiftUp
     ; check if we need to shift up
@@ -472,10 +465,10 @@ NoShiftUp2
     endif
     
     ; decrement shifty
+    ldx SHIFTY
+    beq _nodecshifty
     dec SHIFTY
-    bpl _noincshifty
-    inc SHIFTY
-_noincshifty
+_nodecshifty
     
     ; add new rows
     dec ROW_TIMER
@@ -674,13 +667,14 @@ PseudoKernelWait
     lda INTIM
     bne PseudoKernelWait
     sta WSYNC
+    sta WSYNC
+    lda #0
+    sta VBLANK
     lda #(SL_PER_SUBROW*ROWSUB)
     sta SHIFTY
-    sta WSYNC
-    sta VBLANK
     lda #2
     sta VSYNC
-    lda #54
+    lda #53
     sta TIM64T
     sta WSYNC
 _DecCursorY
